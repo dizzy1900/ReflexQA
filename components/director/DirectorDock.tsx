@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { Clapperboard, Pause, Play, RotateCcw } from "lucide-react";
+import { Clapperboard, GitPullRequest, Pause, Play, RotateCcw } from "lucide-react";
 import { cn } from "../../lib/cn";
 import { spring, springPop } from "../../lib/motion";
 import { GOLDEN_DURATION_MS, useAgentStore } from "../../store/useAgentStore";
@@ -66,6 +66,7 @@ export function DirectorDock() {
   const injectChaos = useAgentStore((s) => s.injectChaos);
   const resetState = useAgentStore((s) => s.resetState);
   const togglePlay = useAgentStore((s) => s.togglePlay);
+  const openPrModal = useAgentStore((s) => s.openPrModal);
   const isPlaying = useAgentStore((s) => s.isPlaying);
   const hasRun = useAgentStore((s) => s.durationMs > 0 || s.agentStatus !== "idle");
   const paused = useAgentStore((s) => !s.isPlaying && s.elapsedMs > 0 && s.elapsedMs < s.durationMs);
@@ -76,6 +77,7 @@ export function DirectorDock() {
     golden: () => void runGoldenDemo(),
     playPause: togglePlay,
     reset: resetState,
+    pr: openPrModal,
   });
 
   const playLabel = isPlaying ? "Pause" : paused ? "Resume" : "Play";
@@ -164,6 +166,24 @@ export function DirectorDock() {
         </span>
 
         <Divider />
+
+        <motion.button
+          type="button"
+          aria-keyshortcuts="P"
+          onClick={openPrModal}
+          animate={{ scale: pressed === "pr" ? 0.95 : 1 }}
+          whileHover={{ y: -1 }}
+          whileTap={{ scale: 0.95 }}
+          transition={spring}
+          className={cn(
+            dockButton,
+            "hidden xl:flex bg-white/[0.04] text-fg-muted ring-card-border hover:text-ansi-magenta hover:ring-ansi-magenta/30 hover:shadow-glow-purple focus-visible:shadow-glow-purple",
+          )}
+        >
+          <GitPullRequest className="h-3.5 w-3.5" aria-hidden />
+          Patch PR
+          <Kbd pressed={pressed === "pr"}>P</Kbd>
+        </motion.button>
 
         <motion.button
           type="button"

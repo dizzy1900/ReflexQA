@@ -104,6 +104,8 @@ export interface AgentState {
   particleBurstId: number;
   /** Increments each time the Subquadratic HUD should flash (0 = none yet). */
   hudFlashId: number;
+  /** True while the auto-generated self-heal pull request is on screen. */
+  prModalOpen: boolean;
   /** Virtual timeline position, scaled by playback speed. */
   elapsedMs: number;
   durationMs: number;
@@ -124,6 +126,8 @@ export interface AgentActions {
   setPlaybackSpeed: (speed: PlaybackSpeed) => void;
   /** Closes the obstructing modal, as a user (or the agent's click) would. */
   dismissObstruction: () => void;
+  openPrModal: () => void;
+  closePrModal: () => void;
 }
 
 export type AgentStore = AgentState & AgentActions;
@@ -169,7 +173,7 @@ export const TARGET_BOX_ID = "checkout-btn";
  */
 const CHECKOUT_RECT: Rect = { x: 920, y: 640, w: 240, h: 56 };
 /** The v2 carrier markup adds right padding, so the button sits 72px further left. */
-const V2_RECT: Rect = { ...CHECKOUT_RECT, x: 848 };
+export const V2_RECT: Rect = { ...CHECKOUT_RECT, x: 848 };
 /** `flex-row-reverse` on the action bar moves the button to the opposite edge. */
 const REVERSED_RECT: Rect = { ...CHECKOUT_RECT, x: 120 };
 const TENANT_MODAL: Obstruction = {
@@ -211,6 +215,8 @@ const MOVE_MS = 1200;
 const PATCH_DELAY_MS = 500;
 const SETTLE_DELAY_MS = 400;
 const CHAOS_TAIL_MS = 4000;
+/** How long the confirmed order stays on screen before the self-heal PR slides in. */
+const PR_MODAL_DELAY_MS = 1200;
 
 /** Timing of each healing beat, relative to the moment the fault is injected. */
 const HEAL_OFFSET = {
@@ -296,6 +302,7 @@ function createInitialState(playbackSpeed: PlaybackSpeed = 1): AgentState {
     orderConfirmed: false,
     particleBurstId: 0,
     hudFlashId: 0,
+    prModalOpen: false,
     elapsedMs: 0,
     durationMs: 0,
   };
@@ -716,7 +723,8 @@ function scheduleScan(tl: Timeline) {
 function buildGoldenTimeline(): Timeline {
   const tl = new Timeline(GOLDEN_DURATION_MS);
   scheduleScan(tl);
-  scheduleHealing(tl, GOLDEN_STAGE_MS.mutation, "broken_selector");
+  const confirmedAt = scheduleHealing(tl, GOLDEN_STAGE_MS.mutation, "broken_selector");
+  tl.at(confirmedAt + PR_MODAL_DELAY_MS, () => setState({ prModalOpen: true }));
   return tl;
 }
 
@@ -731,6 +739,7 @@ function armBoard(scenario: ActiveScenario) {
     traceTree: createTraceTree(),
     targetElement: createTargetElement(),
     orderConfirmed: false,
+    prModalOpen: false,
   }));
   log("DOM_RUNTIME", "warn", `Chaos injected · ${scenario}`);
 }
@@ -782,4 +791,8 @@ export const useAgentStore = create<AgentStore>()((set, get) => ({
   setPlaybackSpeed: (speed) => set({ playbackSpeed: speed }),
 
   dismissObstruction: () => set((s) => ({ targetElement: { ...s.targetElement, obstruction: null } })),
+
+  openPrModal: () => set({ prModalOpen: true }),
+
+  closePrModal: () => set({ prModalOpen: false }),
 }));

@@ -50,6 +50,7 @@ const config: Config = {
         "glow-warning": "0 0 24px -4px rgba(251,191,36,0.45)",
         "glow-danger": "0 0 24px -4px rgba(248,113,113,0.5)",
         "glow-info": "0 0 24px -4px rgba(96,165,250,0.5)",
+        "glow-purple": "0 0 24px -4px rgba(192,132,252,0.5)",
         "glow-vision-nominal": "0 0 20px -2px rgba(6,182,212,0.55), inset 0 0 18px -8px rgba(6,182,212,0.5)",
         "glow-vision-fail": "0 0 20px -2px rgba(244,63,94,0.6), inset 0 0 18px -8px rgba(244,63,94,0.5)",
         "glow-vision-healed": "0 0 20px -2px rgba(16,185,129,0.55), inset 0 0 18px -8px rgba(16,185,129,0.5)",

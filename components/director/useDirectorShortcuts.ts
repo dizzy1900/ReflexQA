@@ -2,15 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 
-export type ShortcutKey = "golden" | "playPause" | "reset";
+export type ShortcutKey = "golden" | "playPause" | "reset" | "pr";
 
 export interface DirectorShortcutHandlers {
   golden: () => void;
   playPause: () => void;
   reset: () => void;
+  pr: () => void;
 }
 
-const KEY_MAP: Record<string, ShortcutKey> = { g: "golden", r: "reset", " ": "playPause" };
+const KEY_MAP: Record<string, ShortcutKey> = { g: "golden", r: "reset", p: "pr", " ": "playPause" };
 const FLASH_MS = 260;
 
 /**
@@ -28,7 +29,7 @@ function belongsToFocusedControl(event: KeyboardEvent, keyboardFocus: boolean): 
 }
 
 /**
- * Global presenter keys: `G` golden demo, `Space` play/pause, `R` reset.
+ * Global presenter keys: `G` golden demo, `Space` play/pause, `R` reset, `P` self-heal pull request.
  * Returns the key that fired in the last moment, so the UI can flash its hint.
  */
 export function useDirectorShortcuts(handlers: DirectorShortcutHandlers): ShortcutKey | null {
