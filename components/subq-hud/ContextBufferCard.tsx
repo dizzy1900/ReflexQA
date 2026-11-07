@@ -2,21 +2,19 @@
 
 import { motion, useReducedMotion, useTransform } from "framer-motion";
 import { Database } from "lucide-react";
-import { TOKENS_SURGE_TARGET, useAgentStore } from "../../store/useAgentStore";
 import { GlassCard } from "./GlassCard";
 import { Odometer } from "./Odometer";
-import { clamp01, formatInt } from "./subqModel";
+import { clamp01, formatInt, TRACE_MAX_TOKENS } from "./subqModel";
 import { useSmoothValue } from "./useSmoothValue";
 
-export function ContextBufferCard() {
-  const tokens = useAgentStore((s) => s.metrics.tokensIngested);
+export function ContextBufferCard({ tokens }: { tokens: number }) {
   const reduceMotion = useReducedMotion();
   const smooth = useSmoothValue(tokens);
-  const progress = useTransform(smooth, (v) => clamp01(v / TOKENS_SURGE_TARGET));
+  const progress = useTransform(smooth, (v) => clamp01(v / TRACE_MAX_TOKENS));
   const percent = useTransform(progress, (p) => `${(p * 100).toFixed(1)}%`);
 
   return (
-    <GlassCard id="subq-context-buffer-title" title="Context Buffer" icon={Database} glow="emerald">
+    <GlassCard id="subq-context-buffer-title" title="Ingested Context" icon={Database} glow="emerald">
       <p className="flex items-baseline gap-1.5">
         <Odometer value={smooth} label={`${formatInt(tokens)} tokens`} className="text-2xl font-semibold text-fg" />
         <span className="text-xs text-fg-muted">Tokens</span>
@@ -27,7 +25,7 @@ export function ContextBufferCard() {
           role="meter"
           aria-label="Context buffer fill"
           aria-valuemin={0}
-          aria-valuemax={TOKENS_SURGE_TARGET}
+          aria-valuemax={TRACE_MAX_TOKENS}
           aria-valuenow={tokens}
           className="relative block h-2 overflow-hidden rounded-full bg-white/[0.06] ring-1 ring-inset ring-card-border"
         >
@@ -42,7 +40,7 @@ export function ContextBufferCard() {
           />
         </span>
         <p className="flex items-center justify-between font-mono text-[10px] tabular-nums text-fg-subtle">
-          <span>of {formatInt(TOKENS_SURGE_TARGET)}</span>
+          <span>of {formatInt(TRACE_MAX_TOKENS)}</span>
           <motion.span className="text-vision-healed">{percent}</motion.span>
         </p>
       </div>

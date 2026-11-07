@@ -5,23 +5,25 @@ import { Timer } from "lucide-react";
 import { SUBQ_PARSE_MS, useAgentStore } from "../../store/useAgentStore";
 import { Badge, type BadgeTone } from "../ui/Badge";
 import { GlassCard } from "./GlassCard";
-import { snapMs, traditionalSeconds } from "./subqModel";
+import { advantageFactor, subqLatencyMs } from "./subqModel";
 import { useSmoothValue } from "./useSmoothValue";
 
-export function TraceResolutionCard() {
+interface TraceResolutionCardProps {
+  tokens: number;
+  /** True while the golden demo owns the numbers; false once the benchmark slider does (or at rest). */
+  demoDriven: boolean;
+}
+
+export function TraceResolutionCard({ tokens, demoDriven }: TraceResolutionCardProps) {
   const status = useAgentStore((s) => s.agentStatus);
   const snapped = useAgentStore((s) => s.hudFlashId > 0);
   const liveMs = useAgentStore((s) => s.metrics.latencyMs);
-  const tokens = useAgentStore((s) => s.metrics.tokensIngested);
 
   // After the snap the live latency drifts again; the card keeps the resolution the snap achieved.
-  const shownMs = useSmoothValue(snapped ? SUBQ_PARSE_MS : liveMs);
+  const shownMs = useSmoothValue(demoDriven ? (snapped ? SUBQ_PARSE_MS : liveMs) : subqLatencyMs(tokens));
   const smoothTokens = useSmoothValue(tokens);
   const ms = useTransform(shownMs, (v) => Math.round(v));
-  const speedup = useTransform(smoothTokens, (n) => {
-    const snap = snapMs(n);
-    return snap > 0 ? `${Math.round((traditionalSeconds(n) * 1000) / snap)}×` : "–";
-  });
+  const speedup = useTransform(smoothTokens, (n) => `${Math.round(advantageFactor(n)).toLocaleString("en-US")}×`);
 
   const active = status !== "idle";
   const tone: BadgeTone = !active ? "neutral" : status === "subq_healing" ? "accent" : "success";

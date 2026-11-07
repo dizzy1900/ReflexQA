@@ -3,16 +3,23 @@
 import { useId } from "react";
 import { motion, useReducedMotion, useTransform } from "framer-motion";
 import { ChartLine } from "lucide-react";
-import { useAgentStore } from "../../store/useAgentStore";
+import { AdvantageCallout } from "./AdvantageCallout";
 import { HudPanel } from "./HudPanel";
 import {
-  CHART_MAX_TOKENS,
   formatInt,
-  snapMs,
+  formatLatency,
+  formatUsd,
+  frontierCostUsd,
+  FRONTIER_USD_PER_MILLION_TOKENS,
+  quadraticLatencyMs,
   SNAP_CEILING_MS,
-  TRADITIONAL_MAX_SECONDS,
-  traditionalSeconds,
+  subqCostUsd,
+  subqLatencyMs,
+  SUBQ_USD_PER_MILLION_TOKENS,
+  TRACE_MAX_TOKENS,
+  TRACE_MIN_TOKENS,
 } from "./subqModel";
+import { TraceVolumeSlider } from "./TraceVolumeSlider";
 import { useSmoothValue } from "./useSmoothValue";
 
 /* Plot geometry in viewBox units. The chart scales with its container; text stays crisp because it is real SVG text. */
@@ -26,43 +33,65 @@ const ZERO_Y = 172;
 const AXIS_Y = 180;
 const PLOT_W = W - LEFT - RIGHT;
 
-const xOf = (tokens: number) => LEFT + (tokens / CHART_MAX_TOKENS) * PLOT_W;
-const yOf = (seconds: number) => ZERO_Y - (seconds / TRADITIONAL_MAX_SECONDS) * (ZERO_Y - TOP);
+/* Latency spans 10ms to 1,000s, so the y-axis is logarithmic: it is the only way the flat O(N) line and the 480s O(N²) blow-up share one plot. */
+const Y_MIN_MS = 10;
+const Y_MAX_MS = 1_000_000;
+const DECADES = Math.log10(Y_MAX_MS / Y_MIN_MS);
 
-const SAMPLES = 80;
+const xOf = (tokens: number) => LEFT + (tokens / TRACE_MAX_TOKENS) * PLOT_W;
+const yOf = (ms: number) => ZERO_Y - (Math.log10(Math.max(ms, Y_MIN_MS) / Y_MIN_MS) / DECADES) * (ZERO_Y - TOP);
 
-const traditionalPoints = Array.from({ length: SAMPLES + 1 }, (_, i) => {
-  const tokens = (i / SAMPLES) * CHART_MAX_TOKENS;
-  return `${xOf(tokens).toFixed(1)} ${yOf(traditionalSeconds(tokens)).toFixed(1)}`;
-});
-const TRADITIONAL_LINE = `M${traditionalPoints.join(" L")}`;
-const TRADITIONAL_AREA = `${TRADITIONAL_LINE} L${xOf(CHART_MAX_TOKENS)} ${ZERO_Y} L${xOf(0)} ${ZERO_Y} Z`;
-const SNAP_LINE = `M${xOf(0)} ${yOf(snapMs(0) / 1000).toFixed(1)} L${xOf(CHART_MAX_TOKENS)} ${yOf(snapMs(CHART_MAX_TOKENS) / 1000).toFixed(1)}`;
+const line = (samples: number, latency: (tokens: number) => number) =>
+  `M${Array.from({ length: samples + 1 }, (_, i) => {
+    const tokens = TRACE_MIN_TOKENS + (i / samples) * (TRACE_MAX_TOKENS - TRACE_MIN_TOKENS);
+    return `${xOf(tokens).toFixed(1)} ${yOf(latency(tokens)).toFixed(1)}`;
+  }).join(" L")}`;
+
+const QUADRATIC_LINE = line(90, quadraticLatencyMs);
+const QUADRATIC_AREA = `${QUADRATIC_LINE} L${xOf(TRACE_MAX_TOKENS)} ${ZERO_Y} L${xOf(TRACE_MIN_TOKENS)} ${ZERO_Y} Z`;
+const SUBQ_LINE = line(40, subqLatencyMs);
 
 const Y_TICKS = [
-  { seconds: 0, label: "0" },
-  { seconds: 5, label: "5s" },
-  { seconds: 10, label: "10s" },
-  { seconds: TRADITIONAL_MAX_SECONDS, label: `${TRADITIONAL_MAX_SECONDS}s` },
+  { ms: 10, label: "10ms" },
+  { ms: 100, label: "100ms" },
+  { ms: 1000, label: "1s" },
+  { ms: 10_000, label: "10s" },
+  { ms: 100_000, label: "100s" },
+  { ms: 1_000_000, label: "1,000s" },
 ] as const;
-const X_TICKS = [0, 100_000, 200_000, 300_000, 400_000] as const;
+const X_TICKS = [0, 250_000, 500_000, 750_000, 1_000_000] as const;
+const X_LABELS: Record<(typeof X_TICKS)[number], string> = {
+  0: "0",
+  250_000: "250k",
+  500_000: "500k",
+  750_000: "750k",
+  1_000_000: "1M tokens",
+};
 
 const DRAW = { duration: 1.1, ease: "easeOut" } as const;
 
-export function ComplexityChart() {
-  const tokens = useAgentStore((s) => s.metrics.tokensIngested);
+interface ComplexityChartProps {
+  /** Context depth in play: the slider position, or the live trace while the demo drives. */
+  tokens: number;
+  onTokensChange: (tokens: number) => void;
+  /** Present only while the viewer has taken over the depth. */
+  onReset?: () => void;
+}
+
+export function ComplexityChart({ tokens, onTokensChange, onReset }: ComplexityChartProps) {
   const reduceMotion = useReducedMotion() ?? false;
   const smooth = useSmoothValue(tokens);
   const uid = useId().replace(/:/g, "");
   const areaId = `${uid}-area`;
   const blurId = `${uid}-blur`;
 
-  const markerX = useTransform(smooth, (n) => xOf(Math.min(n, CHART_MAX_TOKENS)));
-  const traditionalY = useTransform(smooth, (n) => yOf(traditionalSeconds(n)));
-  const snapY = useTransform(smooth, (n) => yOf(snapMs(n) / 1000));
-  const tokensText = useTransform(smooth, (n) => formatInt(n));
-  const traditionalText = useTransform(smooth, (n) => `${traditionalSeconds(n).toFixed(2)}s`);
-  const snapText = useTransform(smooth, (n) => `${Math.round(snapMs(n))}ms`);
+  const markerX = useTransform(smooth, (n) => xOf(Math.min(n, TRACE_MAX_TOKENS)));
+  const quadraticY = useTransform(smooth, (n) => yOf(quadraticLatencyMs(n)));
+  const subqY = useTransform(smooth, (n) => yOf(subqLatencyMs(n)));
+  const quadraticText = useTransform(smooth, (n) => formatLatency(quadraticLatencyMs(n)));
+  const subqText = useTransform(smooth, (n) => formatLatency(subqLatencyMs(n)));
+  const quadraticCost = useTransform(smooth, (n) => formatUsd(frontierCostUsd(n)));
+  const subqCost = useTransform(smooth, (n) => formatUsd(subqCostUsd(n)));
 
   const draw = (delay = 0) =>
     reduceMotion
@@ -90,7 +119,7 @@ export function ComplexityChart() {
       <svg
         viewBox={`0 0 ${W} ${H}`}
         role="img"
-        aria-label={`Latency versus context length from 0 to ${formatInt(CHART_MAX_TOKENS)} tokens. Traditional attention grows quadratically to ${TRADITIONAL_MAX_SECONDS} seconds. Subquadratic Snap stays linear, under ${SNAP_CEILING_MS} milliseconds.`}
+        aria-label={`Latency versus context length from 0 to ${formatInt(TRACE_MAX_TOKENS)} tokens on a logarithmic axis. Traditional attention grows quadratically to ${formatLatency(quadraticLatencyMs(TRACE_MAX_TOKENS))}. Subquadratic Snap stays linear, under ${SNAP_CEILING_MS} milliseconds.`}
         className="h-auto w-full overflow-visible"
       >
         <defs>
@@ -105,8 +134,8 @@ export function ComplexityChart() {
 
         {Y_TICKS.map((tick) => (
           <g key={tick.label}>
-            <line x1={LEFT} x2={W - RIGHT} y1={yOf(tick.seconds)} y2={yOf(tick.seconds)} className="stroke-white/[0.06]" />
-            <text x={LEFT - 8} y={yOf(tick.seconds) + 3} textAnchor="end" className="fill-fg-subtle font-mono text-[9px] tabular-nums">
+            <line x1={LEFT} x2={W - RIGHT} y1={yOf(tick.ms)} y2={yOf(tick.ms)} className="stroke-white/[0.06]" />
+            <text x={LEFT - 8} y={yOf(tick.ms) + 3} textAnchor="end" className="fill-fg-subtle font-mono text-[9px] tabular-nums">
               {tick.label}
             </text>
           </g>
@@ -116,10 +145,10 @@ export function ComplexityChart() {
             key={tick}
             x={xOf(tick)}
             y={AXIS_Y + 15}
-            textAnchor={tick === CHART_MAX_TOKENS ? "end" : "middle"}
+            textAnchor={tick === TRACE_MAX_TOKENS ? "end" : "middle"}
             className="fill-fg-subtle font-mono text-[9px] tabular-nums"
           >
-            {tick === 0 ? "0" : tick === CHART_MAX_TOKENS ? "400k tokens" : `${tick / 1000}k`}
+            {X_LABELS[tick]}
           </text>
         ))}
         <line x1={LEFT} x2={W - RIGHT} y1={AXIS_Y} y2={AXIS_Y} className="stroke-white/10" />
@@ -127,24 +156,24 @@ export function ComplexityChart() {
         <line
           x1={LEFT}
           x2={W - RIGHT}
-          y1={yOf(SNAP_CEILING_MS / 1000)}
-          y2={yOf(SNAP_CEILING_MS / 1000)}
+          y1={yOf(SNAP_CEILING_MS)}
+          y2={yOf(SNAP_CEILING_MS)}
           strokeDasharray="3 4"
           className="stroke-vision-nominal/40"
         />
-        <text x={LEFT + 6} y={yOf(SNAP_CEILING_MS / 1000) - 7} className="fill-vision-nominal/80 font-mono text-[9px] tabular-nums">
+        <text x={W - RIGHT - 4} y={yOf(SNAP_CEILING_MS) - 6} textAnchor="end" className="fill-vision-nominal/80 font-mono text-[9px] tabular-nums">
           {SNAP_CEILING_MS}ms ceiling
         </text>
 
         <motion.path
-          d={TRADITIONAL_AREA}
+          d={QUADRATIC_AREA}
           fill={`url(#${areaId})`}
           initial={reduceMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.9, delay: 0.5 }}
         />
         <motion.path
-          d={TRADITIONAL_LINE}
+          d={QUADRATIC_LINE}
           fill="none"
           strokeWidth={6}
           strokeLinecap="round"
@@ -152,21 +181,17 @@ export function ComplexityChart() {
           filter={`url(#${blurId})`}
           {...draw()}
         />
-        <motion.path d={TRADITIONAL_LINE} fill="none" strokeWidth={2} strokeLinecap="round" className="stroke-vision-fail" {...draw()} />
-        <circle cx={xOf(CHART_MAX_TOKENS)} cy={yOf(TRADITIONAL_MAX_SECONDS)} r={3} className="fill-vision-fail" />
-        <text x={xOf(CHART_MAX_TOKENS) - 9} y={yOf(TRADITIONAL_MAX_SECONDS) + 3.5} textAnchor="end" className="fill-vision-fail font-mono text-[10px] font-semibold tabular-nums">
-          {TRADITIONAL_MAX_SECONDS}s
-        </text>
+        <motion.path d={QUADRATIC_LINE} fill="none" strokeWidth={2} strokeLinecap="round" className="stroke-vision-fail" {...draw()} />
 
-        <motion.path d={SNAP_LINE} fill="none" strokeWidth={7} strokeLinecap="round" className="stroke-vision-nominal/60" filter={`url(#${blurId})`} {...draw(0.15)} />
-        <motion.path d={SNAP_LINE} fill="none" strokeWidth={2} strokeLinecap="round" className="stroke-vision-nominal" {...draw(0.15)} />
+        <motion.path d={SUBQ_LINE} fill="none" strokeWidth={7} strokeLinecap="round" className="stroke-vision-nominal/60" filter={`url(#${blurId})`} {...draw(0.15)} />
+        <motion.path d={SUBQ_LINE} fill="none" strokeWidth={2} strokeLinecap="round" className="stroke-vision-nominal" {...draw(0.15)} />
 
         <motion.g style={{ x: markerX }} data-chart-marker>
           <line y1={TOP - 8} y2={ZERO_Y} strokeDasharray="2 4" className="stroke-white/20" />
-          <motion.g style={{ y: traditionalY }}>
+          <motion.g style={{ y: quadraticY }} data-chart-quadratic-point>
             <circle r={3.5} className="fill-background stroke-vision-fail" strokeWidth={1.5} />
           </motion.g>
-          <motion.g style={{ y: snapY }} data-chart-snap-point>
+          <motion.g style={{ y: subqY }} data-chart-snap-point>
             {reduceMotion ? null : (
               <motion.circle
                 r={7}
@@ -182,17 +207,30 @@ export function ComplexityChart() {
         </motion.g>
       </svg>
 
-      <p className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[11px] tabular-nums text-fg-muted">
-        <span>
-          <motion.span className="text-fg">{tokensText}</motion.span> tokens
-        </span>
-        <span className="text-vision-fail">
-          O(N²) <motion.span>{traditionalText}</motion.span>
-        </span>
-        <span className="text-vision-nominal">
-          Snap <motion.span>{snapText}</motion.span>
-        </span>
-      </p>
+      <TraceVolumeSlider tokens={tokens} smooth={smooth} onChange={onTokensChange} onReset={onReset} />
+
+      <ul className="grid grid-cols-2 gap-2 font-mono text-[11px] tabular-nums">
+        <li className="flex flex-col gap-0.5 rounded-lg bg-vision-fail/[0.06] px-2.5 py-2 ring-1 ring-inset ring-vision-fail/20">
+          <p className="text-[10px] text-fg-muted">Frontier LLM · O(N²)</p>
+          <p className="text-sm font-semibold text-vision-fail" data-readout="quadratic">
+            <motion.span>{quadraticText}</motion.span>
+          </p>
+          <p className="text-[10px] text-fg-subtle" data-readout="frontier-cost">
+            <motion.span className="text-fg-muted">{quadraticCost}</motion.span> at ${FRONTIER_USD_PER_MILLION_TOKENS.toFixed(2)} / 1M tokens
+          </p>
+        </li>
+        <li className="flex flex-col gap-0.5 rounded-lg bg-vision-nominal/[0.06] px-2.5 py-2 ring-1 ring-inset ring-vision-nominal/20">
+          <p className="text-[10px] text-fg-muted">Subquadratic Snap · O(N)</p>
+          <p className="text-sm font-semibold text-vision-nominal" data-readout="subq">
+            <motion.span>{subqText}</motion.span>
+          </p>
+          <p className="text-[10px] text-fg-subtle" data-readout="subq-cost">
+            <motion.span className="text-fg-muted">{subqCost}</motion.span> at ${SUBQ_USD_PER_MILLION_TOKENS.toFixed(2)} / 1M tokens
+          </p>
+        </li>
+      </ul>
+
+      <AdvantageCallout smooth={smooth} />
     </HudPanel>
   );
 }

@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { cn } from "../../lib/cn";
 import { springPop } from "../../lib/motion";
 
-export type BadgeTone = "neutral" | "success" | "warning" | "danger" | "info" | "accent";
+export type BadgeTone = "neutral" | "success" | "warning" | "danger" | "info" | "accent" | "purple";
 
 const tones: Record<BadgeTone, { badge: string; dot: string }> = {
   neutral: { badge: "bg-white/[0.04] text-fg-muted ring-card-border", dot: "bg-fg-subtle" },
@@ -14,6 +14,7 @@ const tones: Record<BadgeTone, { badge: string; dot: string }> = {
   danger: { badge: "bg-danger/10 text-danger ring-danger/30 shadow-glow-danger", dot: "bg-danger" },
   info: { badge: "bg-info/10 text-info ring-info/30 shadow-glow-info", dot: "bg-info" },
   accent: { badge: "bg-accent/10 text-accent-hover ring-accent/30 shadow-glow-accent", dot: "bg-accent" },
+  purple: { badge: "bg-ansi-magenta/10 text-ansi-magenta ring-ansi-magenta/30 shadow-glow-purple", dot: "bg-ansi-magenta" },
 };
 
 interface BadgeProps {

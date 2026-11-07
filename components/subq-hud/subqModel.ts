@@ -1,37 +1,55 @@
-import {
-  COST_PER_HEAL_GPT4O,
-  COST_PER_HEAL_REFLEX,
-  SUBQ_PARSE_MS,
-  TOKENS_SURGE_TARGET,
-} from "../../store/useAgentStore";
+import { COST_PER_HEAL_GPT4O, COST_PER_HEAL_REFLEX, TOKENS_SURGE_TARGET } from "../../store/useAgentStore";
 
-/** Right edge of the complexity chart. */
-export const CHART_MAX_TOKENS = 400_000;
-/** Full-attention latency at `CHART_MAX_TOKENS`; the O(N²) curve is anchored here. */
-export const TRADITIONAL_MAX_SECONDS = 14.2;
+/* Context-depth benchmark: the slider's range and the closed-form models behind every number it drives. */
+export const TRACE_MIN_TOKENS = 10_000;
+export const TRACE_MAX_TOKENS = 1_000_000;
+export const TRACE_STEP_TOKENS = 10_000;
+/** The slider opens on the same trace the golden demo ingests. */
+export const TRACE_DEFAULT_TOKENS = TOKENS_SURGE_TARGET;
 /** The Subquadratic curve must stay under this at every point on the chart. */
-export const SNAP_CEILING_MS = 200;
+export const SNAP_CEILING_MS = 240;
 
-/** Quadratic in context length. */
-export function traditionalSeconds(tokens: number): number {
-  return TRADITIONAL_MAX_SECONDS * (tokens / CHART_MAX_TOKENS) ** 2;
+export const SUBQ_USD_PER_MILLION_TOKENS = 0.04;
+export const FRONTIER_USD_PER_MILLION_TOKENS = 2.5;
+
+/** Linear in context length with a fixed 140ms floor. */
+export function subqLatencyMs(tokens: number): number {
+  return 140 + (tokens / 100_000) * 10;
 }
 
-/** Linear in context length, calibrated so the full 384k-token trace resolves in `SUBQ_PARSE_MS`. */
-export function snapMs(tokens: number): number {
-  return (SUBQ_PARSE_MS * tokens) / TOKENS_SURGE_TARGET;
+/** Quadratic full-attention latency: 480s at 1M tokens. */
+export function quadraticLatencyMs(tokens: number): number {
+  return (tokens / 50_000) ** 2 * 1200;
 }
 
-/** Both costs are per-input-token, so they scale with the live context buffer. */
-export function snapCostUsd(tokens: number): number {
+/** How many times faster the linear engine resolves a trace of this size. */
+export function advantageFactor(tokens: number): number {
+  return quadraticLatencyMs(tokens) / subqLatencyMs(tokens);
+}
+
+/** Smallest context where the linear engine wins: solves 1200·(t/50k)² = 140 + t/10k, rounded to the nearest hundred. */
+export const BREAK_EVEN_TOKENS = Math.round((1 + Math.sqrt(1 + 4 * 48 * 140)) / (2 * 48) * 10_000 / 100) * 100;
+
+export function subqCostUsd(tokens: number): number {
+  return (tokens / 1_000_000) * SUBQ_USD_PER_MILLION_TOKENS;
+}
+
+export function frontierCostUsd(tokens: number): number {
+  return (tokens / 1_000_000) * FRONTIER_USD_PER_MILLION_TOKENS;
+}
+
+export const BENCHMARK_COST_REDUCTION_PERCENT = (1 - SUBQ_USD_PER_MILLION_TOKENS / FRONTIER_USD_PER_MILLION_TOKENS) * 100;
+
+/* Golden-demo costs: per-heal prices measured on the 384,120-token trace, scaled by the live buffer while it surges. */
+export function demoSnapCostUsd(tokens: number): number {
   return (COST_PER_HEAL_REFLEX * tokens) / TOKENS_SURGE_TARGET;
 }
 
-export function baselineCostUsd(tokens: number): number {
+export function demoBaselineCostUsd(tokens: number): number {
   return (COST_PER_HEAL_GPT4O * tokens) / TOKENS_SURGE_TARGET;
 }
 
-export const COST_REDUCTION_PERCENT = (1 - COST_PER_HEAL_REFLEX / COST_PER_HEAL_GPT4O) * 100;
+export const DEMO_COST_REDUCTION_PERCENT = (1 - COST_PER_HEAL_REFLEX / COST_PER_HEAL_GPT4O) * 100;
 
 export function clamp01(value: number): number {
   return Math.min(1, Math.max(0, value));
@@ -43,6 +61,18 @@ export function formatInt(value: number): string {
 
 export function formatUsd(value: number): string {
   return `$${value.toFixed(4)}`;
+}
+
+/** Milliseconds below a second, seconds above: 178ms, 70.8s, 480.0s. */
+export function formatLatency(ms: number): string {
+  if (ms < 1000) return `${Math.round(ms)}ms`;
+  const seconds = ms / 1000;
+  return `${seconds.toFixed(seconds < 10 ? 2 : 1)}s`;
+}
+
+/** One decimal under 10x so the early, modest gains do not all read as "1x" or "2x". */
+export function formatMultiple(value: number): string {
+  return `${value < 10 ? value.toFixed(1) : Math.round(value).toLocaleString("en-US")}x`;
 }
 
 export interface RepoArtifact {

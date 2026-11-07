@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Zap } from "lucide-react";
 import { cn } from "../../lib/cn";
@@ -9,6 +10,7 @@ import { ComplexityChart } from "./ComplexityChart";
 import { ContextBufferCard } from "./ContextBufferCard";
 import { CostDeltaCard } from "./CostDeltaCard";
 import { IngestionTree } from "./IngestionTree";
+import { TRACE_DEFAULT_TOKENS } from "./subqModel";
 import { TraceResolutionCard } from "./TraceResolutionCard";
 
 /**
@@ -17,7 +19,17 @@ import { TraceResolutionCard } from "./TraceResolutionCard";
  */
 export function SubquadraticHud({ className, showHeader = true }: { className?: string; showHeader?: boolean }) {
   const flashId = useAgentStore((s) => s.hudFlashId);
+  const status = useAgentStore((s) => s.agentStatus);
+  const liveTokens = useAgentStore((s) => s.metrics.tokensIngested);
   const reduceMotion = useReducedMotion();
+
+  /** Context depth picked on the slider; null means the HUD follows the demo (or the default trace at rest). */
+  const [picked, setPicked] = useState<number | null>(null);
+  // Whenever the demo advances it takes the numbers back, so the story never plays against a stale slider.
+  useEffect(() => setPicked(null), [status]);
+
+  const demoDriven = picked === null && status !== "idle";
+  const tokens = picked ?? (status === "idle" ? TRACE_DEFAULT_TOKENS : liveTokens);
 
   return (
     <Card aria-labelledby="subq-hud-title" className={cn("relative flex flex-col gap-2.5 overflow-hidden p-3", className)}>
@@ -37,12 +49,16 @@ export function SubquadraticHud({ className, showHeader = true }: { className?: 
 
       {/* auto-fit keeps three-up whenever the column is wide enough and wraps cleanly when it is not. */}
       <div className="grid grid-cols-[repeat(auto-fit,minmax(10.5rem,1fr))] gap-3">
-        <ContextBufferCard />
-        <TraceResolutionCard />
-        <CostDeltaCard />
+        <ContextBufferCard tokens={tokens} />
+        <TraceResolutionCard tokens={tokens} demoDriven={demoDriven} />
+        <CostDeltaCard tokens={tokens} demoDriven={demoDriven} />
       </div>
 
-      <ComplexityChart />
+      <ComplexityChart
+        tokens={tokens}
+        onTokensChange={setPicked}
+        onReset={picked === null ? undefined : () => setPicked(null)}
+      />
       <IngestionTree />
 
       {flashId > 0 && !reduceMotion ? (

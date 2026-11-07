@@ -1,5 +1,6 @@
 import { AppWindow, Zap } from "lucide-react";
 import { DirectorDock } from "../components/director/DirectorDock";
+import { SelfHealingPrModal } from "../components/director/SelfHealingPrModal";
 import { TerminalLog } from "../components/director/TerminalLog";
 import { TopBar } from "../components/director/TopBar";
 import { SubquadraticHud } from "../components/subq-hud/SubquadraticHud";
@@ -55,6 +56,7 @@ export default function Page() {
       <span aria-hidden className="h-14 shrink-0 sm:h-[4.5rem]" />
 
       <DirectorDock />
+      <SelfHealingPrModal />
     </main>
   );
 }
