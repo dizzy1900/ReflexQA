@@ -11,6 +11,8 @@ export interface Memory {
   lessons: string[];
   skills: Record<string, MetaAction[]>;
   episodes: EpisodeSummary[];
+  /** Every past trajectory, step by step. SubQ reads all of it on every judgement. */
+  traces: { generation: number; faults: Fault[]; trajectory: string[] }[];
 }
 
 export const faultKey = (faults: Fault[]) => [...faults].sort().join("+") || "baseline";
@@ -18,12 +20,13 @@ export const faultKey = (faults: Fault[]) => [...faults].sort().join("+") || "ba
 export async function loadMemory(fresh: boolean): Promise<Memory> {
   if (!fresh) {
     try {
-      return JSON.parse(await fs.readFile(MEMORY, "utf8")) as Memory;
+      const saved = JSON.parse(await fs.readFile(MEMORY, "utf8")) as Partial<Memory>;
+      return { lessons: saved.lessons ?? [], skills: saved.skills ?? {}, episodes: saved.episodes ?? [], traces: saved.traces ?? [] };
     } catch {
       /* first run */
     }
   }
-  return { lessons: [], skills: {}, episodes: [] };
+  return { lessons: [], skills: {}, episodes: [], traces: [] };
 }
 
 export async function saveMemory(memory: Memory): Promise<void> {
@@ -55,10 +58,16 @@ export async function saveRecording(events: RecordedEvent[]): Promise<void> {
   await fs.writeFile(RECORDING, JSON.stringify(events));
 }
 
+/** A real recorded React-suite run, committed so a fresh clone can replay the demo with no API keys. */
+const DEMO_RECORDING = path.join(process.cwd(), "demo", "react-run.json");
+
 export async function loadRecording(): Promise<RecordedEvent[] | null> {
-  try {
-    return JSON.parse(await fs.readFile(RECORDING, "utf8")) as RecordedEvent[];
-  } catch {
-    return null;
+  for (const file of [RECORDING, DEMO_RECORDING]) {
+    try {
+      return JSON.parse(await fs.readFile(file, "utf8")) as RecordedEvent[];
+    } catch {
+      /* try the next one */
+    }
   }
+  return null;
 }

@@ -1,5 +1,6 @@
 import type { EngineEvent } from "../../../lib/engine/events";
 import { runCampaign } from "../../../lib/engine/loop";
+import { runReactCampaign } from "../../../lib/engine/reactSuite";
 import { loadRecording, saveRecording, type RecordedEvent } from "../../../lib/engine/memory";
 
 export const runtime = "nodejs";
@@ -9,7 +10,8 @@ export const dynamic = "force-dynamic";
 const MAX_REPLAY_GAP_MS = 2500;
 
 /**
- * GET /api/run?generations=4&fresh=1 streams a real campaign as Server-Sent Events.
+ * GET /api/run?suite=react&generations=3&fresh=1 streams a real campaign as Server-Sent Events
+ * (suite=react: React's own DOM QA suite; suite=checkout: the fault-injected checkout).
  * GET /api/run?replay=1 streams the last recorded real campaign (no API spend).
  */
 export async function GET(request: Request) {
@@ -17,6 +19,7 @@ export async function GET(request: Request) {
   const replay = url.searchParams.get("replay") === "1";
   const generations = Math.min(6, Math.max(1, Number(url.searchParams.get("generations") ?? 4) || 4));
   const fresh = url.searchParams.get("fresh") !== "0";
+  const suite = url.searchParams.get("suite") === "checkout" ? "checkout" : "react";
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream<Uint8Array>({
@@ -54,7 +57,8 @@ export async function GET(request: Request) {
             send(event);
           };
           try {
-            await runCampaign({ origin: url.origin, generations, fresh, emit, signal: request.signal });
+            const run = suite === "react" ? runReactCampaign : runCampaign;
+            await run({ origin: url.origin, generations, fresh, emit, signal: request.signal });
           } catch (err) {
             emit({ type: "error", message: (err as Error).message });
           }

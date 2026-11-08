@@ -1,6 +1,14 @@
 import { create } from "zustand";
 import { Timeline } from "./timeline";
-import type { EngineEvent, EpisodeSummary, Fault, MetaAction, SubqVerdict } from "../lib/engine/events";
+import type { EngineEvent, EpisodeSummary, Fault, MetaAction, ReactTestCase, SubqVerdict } from "../lib/engine/events";
+
+export interface QaResult {
+  generation: number;
+  testCase: ReactTestCase;
+  pass: number;
+  stepsComplete: number;
+  summary: string;
+}
 
 /* -------------------------------------------------------------------------- */
 /*  Types                                                                     */
@@ -126,6 +134,11 @@ export interface AgentState {
   liveFaults: Fault[];
   liveCostUsd: number;
   liveTestPatch: string | null;
+  /** The react/react manual test case the live agent is running (React suite only). */
+  liveCase: ReactTestCase | null;
+  liveCatalogSize: number;
+  /** QA verdicts per React test case, in run order. */
+  qaResults: QaResult[];
   liveError: string | null;
   liveModels: { meta: string; subq: string } | null;
   codebaseTokens: number;
@@ -149,7 +162,7 @@ export interface AgentActions {
   openPrModal: () => void;
   closePrModal: () => void;
   /** Renders the given chaos faults statically, with no scripted run. Used by the real /target page the live agent drives. */
-  applyFaults: (faults: ReadonlyArray<ActiveScenario>) => void;
+  applyFaults: (faults: ReadonlyArray<Fault>) => void;
   /** The checkout form was submitted for real (a human or the live agent clicked the CTA). */
   submitOrder: () => void;
   /** Streams a real campaign from /api/run: Meta drives, SubQ judges, lessons carry over between generations. */
@@ -347,6 +360,9 @@ function createInitialState(playbackSpeed: PlaybackSpeed = 1): AgentState {
     liveFaults: [],
     liveCostUsd: 0,
     liveTestPatch: null,
+    liveCase: null,
+    liveCatalogSize: 0,
+    qaResults: [],
     liveError: null,
     liveModels: null,
     codebaseTokens: 0,
@@ -462,7 +478,6 @@ function handleEngineEvent(ev: EngineEvent) {
         cursor: { ...s.cursor, x: a.x, y: a.y, targetLabel: a.target, isClicking: a.kind === "click" },
       }));
       if (a.kind === "click") setTimeout(() => setCursor({ isClicking: false }), CLICK_HOLD_MS);
-      log("META_VISION", "info", `${a.kind === "click" ? `click (${a.x}, ${a.y}) → ${a.target}` : "declares done"} · ${ev.latencyMs}ms`);
       break;
     }
     case "subq_verdict": {
@@ -481,19 +496,23 @@ function handleEngineEvent(ev: EngineEvent) {
           costSaved: round(s.metrics.costSaved + ev.costUsd, 6),
         },
       }));
-      log(
-        "SUBQ_SNAP",
-        v.goalReached >= 0.5 ? "success" : v.progressed < 0.5 ? "alert" : "info",
-        `verdict · progressed ${(v.progressed * 100).toFixed(0)}% · goal ${(v.goalReached * 100).toFixed(0)}% · route ${v.route.choice} · ${ev.latencyMs}ms · ${formatInt(ev.inputTokens)} tok`,
-      );
       break;
     }
     case "lesson":
       setState((s) => ({ lessons: [...s.lessons, ev.lesson], liveTestPatch: ev.testPatch || s.liveTestPatch }));
-      log("META_VISION", "success", `Lesson learned · ${ev.lesson}`);
       break;
     case "curriculum":
-      log("SUBQ_SNAP", "info", `Curriculum · next: ${ev.chosen} (${((ev.probabilities[ev.chosen] ?? 0) * 100).toFixed(0)}%)`);
+      break;
+    case "test_case":
+      setState({ liveCase: ev.testCase, liveCatalogSize: ev.catalogSize });
+      break;
+    case "qa_verdict":
+      setState((s) => ({
+        qaResults: [
+          ...s.qaResults,
+          { generation: ev.generation, testCase: ev.testCase, pass: ev.pass, stepsComplete: ev.stepsComplete, summary: ev.summary },
+        ],
+      }));
       break;
     case "episode_end":
       setState((s) => ({
@@ -508,6 +527,11 @@ function handleEngineEvent(ev: EngineEvent) {
             metaCalls: ev.metaCalls,
             replayedSteps: ev.replayedSteps,
             durationMs: ev.durationMs,
+            mistakes: ev.mistakes,
+            judgeCorrect: ev.judgeCorrect,
+            judgeChecks: ev.judgeChecks,
+            caseTitle: ev.caseTitle,
+            qaPass: ev.qaPass,
           },
         ],
         agentStatus: ev.success ? "success" : "regression_tripped",
@@ -1011,7 +1035,7 @@ export const useAgentStore = create<AgentStore>()((set, get) => ({
     });
   },
 
-  runLive: () => startLiveStream("/api/run?generations=3&fresh=1", "Live campaign starting · connecting to engine"),
+  runLive: () => startLiveStream("/api/run?suite=react&generations=3&fresh=1", "Live campaign on react/react fixtures/dom · connecting to engine"),
 
   replayLastLive: () => startLiveStream("/api/run?replay=1", "Replaying last recorded live run · no API calls", true),
 
