@@ -4,7 +4,7 @@
 
 ![ReflexQA running React's own DOM test suite: the test case, Meta's live view, and SubQ's judgement](docs/screenshot.png)
 
-▶ **[Watch the 1-minute demo](demo/reflexqa-demo.mp4)**: a real recorded run, captioned. · **[90-second pitch](PITCH.md)**
+▶ **[Watch the 1-minute demo](demo/reflexqa-demo.mp4)**: a real recorded run, captioned. · 
 
 React keeps a manual browser QA suite in [`react/react` › `fixtures/dom`](https://github.com/react/react/tree/main/fixtures/dom): dozens of test cases with "Steps to reproduce" and an "Expected Result". Maintainers click through them by hand. ReflexQA runs them autonomously:
 
