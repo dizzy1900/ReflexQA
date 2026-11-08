@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
 import { Zap } from "lucide-react";
 import { cn } from "../../lib/cn";
 import { useAgentStore } from "../../store/useAgentStore";
@@ -21,10 +20,8 @@ import { TraceResolutionCard } from "./TraceResolutionCard";
  * quadratic attention that cannot afford to read it. Driven entirely by `useAgentStore`.
  */
 export function SubquadraticHud({ className, showHeader = true }: { className?: string; showHeader?: boolean }) {
-  const flashId = useAgentStore((s) => s.hudFlashId);
   const status = useAgentStore((s) => s.agentStatus);
   const liveTokens = useAgentStore((s) => s.metrics.tokensIngested);
-  const reduceMotion = useReducedMotion();
   const live = useAgentStore((s) => s.mode === "live");
 
   /** Context depth picked on the slider; null means the HUD follows the demo (or the default trace at rest). */
@@ -72,17 +69,6 @@ export function SubquadraticHud({ className, showHeader = true }: { className?: 
         onReset={picked === null ? undefined : () => setPicked(null)}
       />
       <IngestionTree />
-
-      {flashId > 0 && !reduceMotion ? (
-        <motion.span
-          key={flashId}
-          aria-hidden
-          className="pointer-events-none absolute inset-0 rounded-xl ring-1 ring-inset ring-vision-nominal/70 shadow-glow-vision-nominal"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: [0, 1, 0] }}
-          transition={{ duration: 0.9, times: [0, 0.2, 1], ease: "easeOut" }}
-        />
-      ) : null}
     </Card>
   );
 }

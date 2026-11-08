@@ -27,21 +27,17 @@ export function ContextBufferCard({ tokens }: { tokens: number }) {
           aria-valuemin={0}
           aria-valuemax={TRACE_MAX_TOKENS}
           aria-valuenow={tokens}
-          className="relative block h-2 overflow-hidden rounded-full bg-white/[0.06] ring-1 ring-inset ring-card-border"
+          className="relative block h-1 overflow-hidden rounded-full bg-white/15"
         >
           <motion.span
-            className="absolute inset-0 origin-left rounded-full bg-gradient-to-r from-vision-healed/70 to-success shadow-glow-success"
+            className="absolute inset-0 origin-left rounded-full bg-fg"
             style={{ scaleX: progress }}
             transition={reduceMotion ? { duration: 0 } : undefined}
-          />
-          <span
-            aria-hidden
-            className="absolute inset-0 bg-[repeating-linear-gradient(90deg,transparent_0_7px,theme(colors.background)_7px_9px)] opacity-60"
           />
         </span>
         <p className="flex items-center justify-between font-mono text-[10px] tabular-nums text-fg-subtle">
           <span>of {formatInt(TRACE_MAX_TOKENS)}</span>
-          <motion.span className="text-vision-healed">{percent}</motion.span>
+          <motion.span className="text-fg">{percent}</motion.span>
         </p>
       </div>
     </GlassCard>

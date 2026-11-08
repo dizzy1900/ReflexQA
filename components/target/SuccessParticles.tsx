@@ -5,7 +5,7 @@ import { useReducedMotion } from "framer-motion";
 import { TARGET_VIEWPORT, useAgentStore } from "../../store/useAgentStore";
 
 // Canvas fills can't read Tailwind classes, so the palette mirrors the success, accent, info and warning tokens.
-const COLORS = ["#34d399", "#6366f1", "#60a5fa", "#fbbf24", "#ededf0"];
+const COLORS = ["#ededed", "#a1a1a1", "#6e6e6e", "#3fb27f", "#ffffff"];
 const PARTICLE_COUNT = 140;
 const GRAVITY = 900;
 const ORIGIN = { x: TARGET_VIEWPORT.w / 2, y: TARGET_VIEWPORT.h / 2 - 40 };

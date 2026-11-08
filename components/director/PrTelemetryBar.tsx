@@ -20,28 +20,28 @@ export function PrTelemetryBar() {
   const metaCalls = episodes.reduce((n, e) => n + (e.metaCalls ?? 0), 0);
 
   return (
-    <footer aria-label="Telemetry" className="border-t border-card-border bg-background/70 px-5 py-3">
-      <ul className="flex flex-col gap-1.5 font-mono text-[11px] leading-snug text-fg-muted">
+    <footer aria-label="Telemetry" className="border-t border-card-border px-5 py-3">
+      <ul className="flex flex-col gap-1.5 text-xs leading-5 text-fg-muted">
         <li className="flex items-start gap-2">
-          <Zap className="mt-px h-3.5 w-3.5 shrink-0 text-vision-nominal" aria-hidden />
+          <Zap className="mt-px h-3.5 w-3.5 shrink-0 text-fg-subtle" aria-hidden />
           <span>
-            SubQ Snap Judge: <span className="tabular-nums text-fg">{tokens}</span> tokens (codebase + memory + 2 frames) in{" "}
-            <span className="tabular-nums text-vision-nominal">{ms}ms</span>{" "}
-            <span className="tabular-nums text-ansi-green">({cost})</span>
+            SubQ Snap Judge: <span className="font-mono tabular-nums text-fg">{tokens}</span> tokens (codebase + memory + 2 frames) in{" "}
+            <span className="font-mono tabular-nums text-fg">{ms}ms</span>{" "}
+            <span className="font-mono tabular-nums text-fg-subtle">({cost})</span>
           </span>
         </li>
         <li className="flex items-start gap-2">
-          <ScanEye className="mt-px h-3.5 w-3.5 shrink-0 text-ansi-magenta" aria-hidden />
+          <ScanEye className="mt-px h-3.5 w-3.5 shrink-0 text-fg-subtle" aria-hidden />
           <span>
             Meta Muse Spark Driver: final click at{" "}
-            <span className="tabular-nums text-fg">
+            <span className="font-mono tabular-nums text-fg">
               [{point.x}, {point.y}]
             </span>
             {useLive ? (
               <>
                 {" · "}
-                <span className="tabular-nums text-fg">{metaCalls}</span> Driver calls across{" "}
-                <span className="tabular-nums text-fg">{episodes.length}</span> generations
+                <span className="font-mono tabular-nums text-fg">{metaCalls}</span> Driver calls across{" "}
+                <span className="font-mono tabular-nums text-fg">{episodes.length}</span> generations
               </>
             ) : null}
           </span>

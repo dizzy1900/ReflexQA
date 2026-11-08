@@ -1,80 +1,95 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { TrendingDown } from "lucide-react";
 import { cn } from "../../lib/cn";
-import { spring } from "../../lib/motion";
 import { useAgentStore } from "../../store/useAgentStore";
 import { Card } from "../ui/Card";
 
-const CHART_H = 96;
+const CHART_H = 88;
+const ease = { duration: 0.4, ease: "easeOut" } as const;
 
-/** The recursive self-improvement proof: steps to success should fall as lessons accumulate. */
+/** The recursive self-improvement proof: the same work gets cheaper and faster as memory accumulates. */
 export function RsiChart() {
   const episodes = useAgentStore((s) => s.episodes);
   const max = Math.max(4, ...episodes.map((e) => e.steps));
-  const first = episodes[0]?.steps;
-  const last = episodes[episodes.length - 1]?.steps;
-  const delta = episodes.length > 1 && first ? Math.round(((first - last) / first) * 100) : null;
+  const maxMs = Math.max(1, ...episodes.map((e) => e.durationMs ?? 0));
+  // The headline gain: the first run of a case versus its replay from memory.
+  const firstEp = episodes[0];
+  const replay = episodes.find((e) => e.generation > 1 && (e.replayedSteps ?? 0) > 0 && e.success);
+  const speedup = firstEp?.durationMs && replay?.durationMs ? firstEp.durationMs / replay.durationMs : null;
 
   return (
-    <Card aria-labelledby="rsi-title" className="flex flex-col gap-2 p-3">
-      <header className="flex items-center justify-between gap-2">
-        <h3 id="rsi-title" className="flex items-center gap-2 text-xs font-medium text-fg">
-          <TrendingDown className="h-3.5 w-3.5 text-success" aria-hidden />
-          Recursive self-improvement: steps per generation
+    <Card aria-labelledby="rsi-title" className="flex flex-col gap-4 p-4">
+      <header className="flex items-baseline justify-between gap-2">
+        <h3 id="rsi-title" className="text-[13px] font-medium text-fg">
+          Self-improvement
         </h3>
-        {delta !== null ? (
-          <span className={cn("font-mono text-xs tabular-nums", delta > 0 ? "text-success" : "text-fg-muted")}>
-            {delta > 0 ? "−" : ""}
-            {Math.abs(delta)}%
-          </span>
-        ) : null}
+        {speedup !== null && firstEp && replay ? (
+          <motion.span
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.2 }}
+            className="flex items-center gap-1.5 font-mono text-xs tabular-nums text-fg"
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden />
+            Meta {firstEp.metaCalls ?? 0}→{replay.metaCalls ?? 0} · {speedup.toFixed(1)}× faster
+          </motion.span>
+        ) : (
+          <span className="text-xs text-fg-subtle">Time per generation</span>
+        )}
       </header>
 
-      <ol className="flex items-end gap-3" style={{ height: CHART_H + 48 }} aria-label="Steps to success per generation">
+      <ol className="flex items-end gap-4 border-b border-card-border" style={{ height: CHART_H + 24 }} aria-label="Wall time per generation">
         <AnimatePresence initial={false}>
           {episodes.map((e) => (
             <motion.li
               key={e.generation}
               layout
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={spring}
-              className="flex flex-1 flex-col items-center gap-1"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.2 }}
+              className="flex flex-1 flex-col items-center gap-1.5"
             >
-              <span className="font-mono text-xs tabular-nums text-fg">{e.steps}</span>
+              <span className="font-mono text-xs tabular-nums text-fg-muted">
+                {e.durationMs ? `${(e.durationMs / 1000).toFixed(1)}s` : e.steps}
+              </span>
               <motion.span
+                title={e.caseTitle}
                 className={cn(
-                  "w-full max-w-12 rounded-t-md",
-                  e.success ? "bg-success/70 shadow-glow-success" : "bg-danger/70 shadow-glow-danger",
+                  "w-full max-w-10 rounded-t-sm",
+                  !e.success ? "bg-danger/70" : (e.replayedSteps ?? 0) > 0 ? "bg-fg" : "bg-white/30",
                 )}
                 initial={{ height: 0 }}
-                animate={{ height: (e.steps / max) * CHART_H }}
-                transition={spring}
+                animate={{ height: e.durationMs ? (e.durationMs / maxMs) * CHART_H : (e.steps / max) * CHART_H }}
+                transition={ease}
               />
-              <span className="font-mono text-[10px] tabular-nums text-fg-subtle">
-                G{e.generation} · {e.lessonsUsed}L
-              </span>
+            </motion.li>
+          ))}
+        </AnimatePresence>
+        {episodes.length === 0 ? <li className="self-center pb-6 text-[13px] text-fg-subtle">No generations yet</li> : null}
+      </ol>
+
+      {episodes.length > 0 ? (
+        <ol className="-mt-2 flex gap-4" aria-label="Generation details">
+          {episodes.map((e) => (
+            <li key={e.generation} className="flex flex-1 flex-col items-center gap-0.5 text-center">
+              <span className="font-mono text-xs tabular-nums text-fg">G{e.generation}</span>
               {e.metaCalls !== undefined ? (
                 <span
-                  title={`${e.metaCalls} Meta Driver calls${e.replayedSteps ? ` · ${e.replayedSteps} steps replayed from learned skills` : ""}`}
-                  className={cn(
-                    "rounded px-1 font-mono text-[10px] tabular-nums ring-1 ring-inset",
-                    e.metaCalls === 0 ? "text-success ring-success/30 shadow-glow-success" : "text-accent ring-accent/30",
-                  )}
+                  title={`${e.metaCalls} Meta Driver calls${e.replayedSteps ? ` · ${e.replayedSteps} steps replayed from memory` : ""}`}
+                  className={cn("font-mono text-[11px] tabular-nums", e.metaCalls === 0 ? "text-success" : "text-fg-subtle")}
                 >
                   {e.metaCalls} Meta
                 </span>
               ) : null}
-            </motion.li>
+            </li>
           ))}
-        </AnimatePresence>
-        {episodes.length === 0 ? <li className="self-center text-xs text-fg-subtle">No generations yet</li> : null}
-      </ol>
+        </ol>
+      ) : null}
+
       {episodes.some((e) => e.metaCalls !== undefined) ? (
-        <p className="text-[10px] leading-snug text-fg-subtle">
-          Bars: steps to finish. Chips: Meta vision calls. Learned skills replay with <span className="text-success">0 Meta calls</span>, each step still verified by SubQ.
+        <p className="text-xs leading-relaxed text-fg-subtle">
+          Grey: first run, driven by Meta. White: replayed from memory with 0 Meta calls, each step still verified by SubQ.
         </p>
       ) : null}
     </Card>

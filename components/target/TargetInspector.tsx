@@ -38,7 +38,7 @@ export function TargetInspector({ className }: { className?: string }) {
   return (
     <Card aria-labelledby="target-inspector-title" className={cn("p-3.5", className)}>
       <header className="mb-1 flex items-center justify-between gap-3">
-        <h3 id="target-inspector-title" className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-fg-muted">
+        <h3 id="target-inspector-title" className="flex items-center gap-1.5 text-xs font-medium text-fg-muted">
           <Crosshair className="h-3.5 w-3.5" aria-hidden />
           DOM Ground Truth
         </h3>

@@ -103,11 +103,11 @@ export function ChaosControls() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={spring}
-        className="pointer-events-auto flex max-w-full flex-wrap items-center justify-center gap-1.5 rounded-full bg-white/[0.05] p-1.5 pl-4 ring-1 ring-inset ring-card-border-hover shadow-frame backdrop-blur-xl"
+        className="pointer-events-auto flex max-w-full flex-wrap items-center justify-center gap-1.5 rounded-lg bg-card p-1.5 pl-3 ring-1 ring-inset ring-card-border"
       >
-        <span className="mr-1 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-fg-muted">
-          <Zap className="h-3.5 w-3.5 text-warning" aria-hidden />
-          Chaos Controls
+        <span className="mr-1 flex items-center gap-1.5 text-xs text-fg-muted">
+          <Zap className="h-3.5 w-3.5" aria-hidden />
+          Inject fault
         </span>
         {PILLS.map((pill) => (
           <ChaosPill key={pill.scenario} {...pill} active={active[pill.scenario]} onSelect={injectChaos} />

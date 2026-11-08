@@ -62,8 +62,6 @@ export function StreamedLine({ text, live, tone }: StreamedLineProps) {
       {streaming ? (
         <motion.span
           className={cn("ml-0.5 inline-block h-3 w-1.5 translate-y-0.5", toneStyles[tone].solid)}
-          animate={{ opacity: [1, 0.2, 1] }}
-          transition={{ duration: 0.8, repeat: Infinity }}
           aria-hidden
         />
       ) : null}

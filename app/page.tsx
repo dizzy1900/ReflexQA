@@ -13,7 +13,7 @@ const PANE = "flex min-h-0 min-w-0 flex-col gap-2 lg:overflow-y-auto";
 
 /**
  * The command center. From lg up it fits the viewport: three panes at 35 / 35 / 30, the execution
- * log underneath, and the Director dock floating over a reserved strip at the bottom.
+ * log underneath, and the Director toolbar docked flat along the bottom edge.
  * Below lg the panes stack and the page scrolls.
  */
 export default function Page() {
@@ -37,9 +37,7 @@ export default function Page() {
         </section>
       </div>
 
-      <TerminalLog className="mx-3 mb-2 shrink-0" />
-      {/* Keeps the floating dock from covering the log. */}
-      <span aria-hidden className="h-14 shrink-0 sm:h-[4.5rem]" />
+      <TerminalLog className="mx-3 mb-3 shrink-0" />
 
       <DirectorDock />
       <SelfHealingPrModal />

@@ -1,9 +1,8 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { TARGET_BOX_ID, TARGET_VIEWPORT, useAgentStore } from "../../store/useAgentStore";
+import { TARGET_BOX_ID, useAgentStore } from "../../store/useAgentStore";
 import { BoundingReticle } from "./BoundingReticle";
-import { CursorTrail } from "./CursorTrail";
 import { GhostCursor } from "./GhostCursor";
 import { useCursorSpring } from "./useCursorSpring";
 import { agentTone } from "./visionTheme";
@@ -25,12 +24,8 @@ export function MetaVisionOverlay({ scale }: MetaVisionOverlayProps) {
   const tone = useAgentStore((s) => agentTone(s.agentStatus));
   const { x, y } = useCursorSpring(scale);
 
-  const width = TARGET_VIEWPORT.w * scale;
-  const height = TARGET_VIEWPORT.h * scale;
-
   return (
     <section aria-hidden className="absolute inset-0 overflow-hidden" data-meta-vision-overlay>
-      <CursorTrail x={x} y={y} width={width} height={height} tone={tone} />
 
       <AnimatePresence>
         {observing ? (
@@ -40,7 +35,7 @@ export function MetaVisionOverlay({ scale }: MetaVisionOverlayProps) {
             animate={{ top: "104%", opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 1.8, ease: "easeInOut", opacity: { duration: 0.3 } }}
-            className="absolute inset-x-0 h-16 -translate-y-1/2 bg-gradient-to-b from-transparent via-vision-nominal/15 to-transparent"
+            className="absolute inset-x-0 h-px -translate-y-1/2 bg-white/25"
           />
         ) : null}
       </AnimatePresence>

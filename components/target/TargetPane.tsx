@@ -10,7 +10,12 @@ import { TargetInspector } from "./TargetInspector";
 
 /** Column 1: the software under test. React's DOM test suite during a live React run, the checkout otherwise. */
 export function TargetPane({ className }: { className?: string }) {
-  const reactRun = useAgentStore((s) => s.mode === "live" && (s.liveCase !== null || s.liveCatalogSize > 0 || (s.liveRunning && !s.liveReplay)));
+  // React leads: at rest the pane introduces React's suite; the checkout only appears while its scripted demo plays.
+  const reactRun = useAgentStore(
+    (s) =>
+      (s.mode === "live" && (s.liveCase !== null || s.liveCatalogSize > 0 || (s.liveRunning && !s.liveReplay))) ||
+      (s.mode !== "live" && s.agentStatus === "idle" && !s.isPlaying),
+  );
 
   return (
     <section aria-labelledby="pane-target-title" className={className}>

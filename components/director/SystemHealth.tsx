@@ -1,33 +1,23 @@
 "use client";
 
-import { HeartPulse } from "lucide-react";
+import { cn } from "../../lib/cn";
 import { useAgentStore, type AgentStatus } from "../../store/useAgentStore";
-import { Badge, type BadgeTone } from "../ui/Badge";
 
-interface Health {
-  label: string;
-  tone: BadgeTone;
+function healthFor(status: AgentStatus): { label: string; dot: string } {
+  if (status === "regression_tripped") return { label: "Regression", dot: "bg-danger" };
+  if (status === "subq_healing") return { label: "Healing", dot: "bg-warning" };
+  return { label: "Operational", dot: "bg-success" };
 }
 
-const NOMINAL: Health = { label: "ALL ENGINES NOMINAL", tone: "success" };
-
-function healthFor(status: AgentStatus): Health {
-  if (status === "regression_tripped") return { label: "REGRESSION DETECTED", tone: "danger" };
-  if (status === "subq_healing") return { label: "SELF-HEALING", tone: "warning" };
-  return NOMINAL;
-}
-
-/** Goes red when the target regresses and amber while Subquadratic heals it, then returns to nominal. */
+/** Quiet status line: a dot and a word. */
 export function SystemHealth() {
   const status = useAgentStore((s) => s.agentStatus);
   const health = healthFor(status);
 
   return (
-    <p role="status" aria-label="System health" className="flex">
-      <Badge tone={health.tone} pulse className="font-mono tracking-wider">
-        <HeartPulse className="h-3 w-3" aria-hidden />
-        {health.label}
-      </Badge>
+    <p role="status" aria-label="System health" className="hidden items-center gap-1.5 text-xs text-fg-muted md:flex">
+      <span aria-hidden className={cn("h-1.5 w-1.5 rounded-full transition-colors duration-150", health.dot)} />
+      {health.label}
     </p>
   );
 }

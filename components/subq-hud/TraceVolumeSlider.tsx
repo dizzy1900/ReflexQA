@@ -76,10 +76,10 @@ export function TraceVolumeSlider({ tokens, smooth, onChange, onReset }: TraceVo
       </div>
 
       <div className="relative flex h-5 items-center">
-        <span aria-hidden className="absolute inset-x-2 h-1.5 rounded-full bg-white/[0.08] ring-1 ring-inset ring-card-border" />
+        <span aria-hidden className="absolute inset-x-2 h-1 rounded-full bg-white/15" />
         <motion.span
           aria-hidden
-          className="absolute inset-x-2 h-1.5 origin-left rounded-full bg-gradient-to-r from-vision-nominal/40 to-vision-nominal shadow-glow-vision-nominal"
+          className="absolute inset-x-2 h-1 origin-left rounded-full bg-fg"
           style={{ scaleX: progress }}
         />
         <input
