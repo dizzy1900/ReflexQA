@@ -10,7 +10,7 @@ import {
 
 export const PR_NUMBER = 1042;
 export const PR_TITLE = "[Self-Heal] Reconcile selector mutation in checkout flow";
-export const PR_AUTHOR = "ReflexQA Bot (Subquadratic Engine)";
+export const PR_AUTHOR = "ReflexQA Bot (Meta Muse Spark · judged by SubQ Snap)";
 export const PR_BRANCH = "reflexqa/self-heal-1042";
 export const PR_BASE = "main";
 export const PR_CONFIDENCE_PERCENT = 99.4;
@@ -35,7 +35,7 @@ export const DIFF_LINES: readonly DiffLine[] = [
     kind: "add",
     oldNo: null,
     newNo: 42,
-    code: `  // Healed in ${SUBQ_PARSE_MS}ms via SubQ Trace Reconciliation (Confidence: ${PR_CONFIDENCE_PERCENT}%)`,
+    code: `  // Healed in ${SUBQ_PARSE_MS}ms by Meta Muse Spark, verified by SubQ Snap (Confidence: ${PR_CONFIDENCE_PERCENT}%)`,
   },
   {
     id: "add-click",

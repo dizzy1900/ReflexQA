@@ -30,6 +30,8 @@ export function MultimodalReasoningPanel({ className }: { className?: string }) 
   const lines = useVisionStream();
   const tone = agentTone(status);
   const badge = STATUS_BADGE[status];
+  const live = useAgentStore((s) => s.mode === "live");
+  const action = useAgentStore((s) => s.liveAction);
 
   return (
     <Card aria-labelledby="multimodal-reasoning-title" className={cn("flex flex-col gap-3 p-4", className)}>
@@ -45,13 +47,28 @@ export function MultimodalReasoningPanel({ className }: { className?: string }) 
 
       <Waveform tone={tone} className="rounded-lg bg-background/60 ring-1 ring-inset ring-card-border" />
 
-      <ol role="log" aria-label="Vision token stream" className={cn("flex flex-col justify-end gap-1.5 overflow-hidden", STREAM_HEIGHT)}>
-        <AnimatePresence initial={false}>
-          {lines.map((line, index) => (
-            <StreamedLine key={line.id} text={line.text} live={index === lines.length - 1} tone={tone} />
-          ))}
-        </AnimatePresence>
-      </ol>
+      {live ? (
+        <section aria-label="Meta Muse Spark reasoning" className={cn("flex flex-col gap-1.5 overflow-y-auto text-xs", STREAM_HEIGHT)}>
+          {action ? (
+            <>
+              <p className="font-mono text-[11px] tabular-nums text-accent">
+                {action.kind === "click" ? `click(${action.x}, ${action.y})` : "done()"} → {action.target}
+              </p>
+              <p className="leading-relaxed text-fg-muted">{action.reasoning}</p>
+            </>
+          ) : (
+            <p className="text-fg-subtle">Muse Spark is reading the screenshot…</p>
+          )}
+        </section>
+      ) : (
+        <ol role="log" aria-label="Vision token stream" className={cn("flex flex-col justify-end gap-1.5 overflow-hidden", STREAM_HEIGHT)}>
+          <AnimatePresence initial={false}>
+            {lines.map((line, index) => (
+              <StreamedLine key={line.id} text={line.text} live={index === lines.length - 1} tone={tone} />
+            ))}
+          </AnimatePresence>
+        </ol>
+      )}
     </Card>
   );
 }

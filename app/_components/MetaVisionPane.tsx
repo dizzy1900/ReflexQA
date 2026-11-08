@@ -1,6 +1,8 @@
 "use client";
 
 import { ScanEye } from "lucide-react";
+import { LiveFrameFeed } from "../../components/meta-vision/LiveFrameFeed";
+import { useAgentStore } from "../../store/useAgentStore";
 import { MetaVisionOverlay } from "../../components/meta-vision/MetaVisionOverlay";
 import { MultimodalReasoningPanel } from "../../components/meta-vision/MultimodalReasoningPanel";
 import { TargetAppSandbox } from "../../components/target/TargetAppSandbox";
@@ -12,6 +14,10 @@ import { PaneHeader } from "../../components/ui/PaneHeader";
  * Meta Vision overlay is drawn over it. The overlay needs the feed's scale, which is why this is a client module.
  */
 export function MetaVisionPane() {
+  const live = useAgentStore((s) => s.mode === "live");
+  const frame = useAgentStore((s) => s.liveFrame);
+  const replay = useAgentStore((s) => s.liveReplay);
+  const metaModel = useAgentStore((s) => s.liveModels?.meta ?? "muse-spark");
   return (
     <section aria-labelledby="pane-vision-title" className="flex min-h-0 min-w-0 flex-col gap-2 lg:overflow-y-auto">
       <PaneHeader
@@ -19,12 +25,16 @@ export function MetaVisionPane() {
         title="Meta Vision"
         icon={<ScanEye />}
         aside={
-          <Badge tone="info" pulse>
-            Perception feed
+          <Badge tone={live ? "success" : "info"} pulse>
+            {live ? `${replay ? "Recorded run" : "Live"} · ${metaModel}` : "Perception feed"}
           </Badge>
         }
       />
-      <TargetAppSandbox mirror overlay={({ scale }) => <MetaVisionOverlay scale={scale} />} className="shrink-0" />
+      {live && frame ? (
+        <LiveFrameFeed frame={frame} />
+      ) : (
+        <TargetAppSandbox mirror overlay={({ scale }) => <MetaVisionOverlay scale={scale} />} className="shrink-0" />
+      )}
       <MultimodalReasoningPanel className="shrink-0" />
     </section>
   );
