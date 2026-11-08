@@ -45,25 +45,25 @@ export const SCENARIO_BY_ID: Record<ActiveScenario, ScenarioMeta> = {
 /** Classes for each tone, covering rest, hover and live states. */
 export const SCENARIO_TONE_STYLES: Record<ScenarioTone, { idle: string; active: string; dot: string; text: string; glow: string }> = {
   danger: {
-    idle: "hover:text-danger hover:ring-danger/30 hover:shadow-glow-danger focus-visible:shadow-glow-danger",
-    active: "bg-danger/10 text-danger ring-danger/40 shadow-glow-danger",
+    idle: "hover:bg-white/[0.06] hover:text-fg",
+    active: "bg-white/[0.08] text-fg ring-card-border-hover",
     dot: "bg-danger",
-    text: "text-danger",
-    glow: "shadow-glow-danger",
+    text: "text-fg",
+    glow: "",
   },
   warning: {
-    idle: "hover:text-warning hover:ring-warning/30 hover:shadow-glow-warning focus-visible:shadow-glow-warning",
-    active: "bg-warning/10 text-warning ring-warning/40 shadow-glow-warning",
+    idle: "hover:bg-white/[0.06] hover:text-fg",
+    active: "bg-white/[0.08] text-fg ring-card-border-hover",
     dot: "bg-warning",
-    text: "text-warning",
-    glow: "shadow-glow-warning",
+    text: "text-fg",
+    glow: "",
   },
   info: {
-    idle: "hover:text-info hover:ring-info/30 hover:shadow-glow-info focus-visible:shadow-glow-info",
-    active: "bg-info/10 text-info ring-info/40 shadow-glow-info",
+    idle: "hover:bg-white/[0.06] hover:text-fg",
+    active: "bg-white/[0.08] text-fg ring-card-border-hover",
     dot: "bg-info",
-    text: "text-info",
-    glow: "shadow-glow-info",
+    text: "text-fg",
+    glow: "",
   },
 };
 

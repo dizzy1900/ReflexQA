@@ -10,7 +10,7 @@ import { Field } from "../ui/Field";
 export const BILLING_FORM_ID = "billing-form";
 
 function SectionLabel({ children }: { children: string }) {
-  return <h3 className="text-[11px] font-medium uppercase tracking-wider text-fg-subtle">{children}</h3>;
+  return <h3 className="text-xs font-medium text-fg-subtle">{children}</h3>;
 }
 
 export function BillingForm() {

@@ -22,8 +22,8 @@ export const Card = forwardRef<HTMLElement, CardProps>(function Card(
       initial="hidden"
       animate="visible"
       className={cn(
-        "rounded-xl bg-card ring-1 ring-inset ring-card-border transition-[box-shadow] duration-200 ease-out",
-        interactive && "hover:shadow-glow-accent hover:ring-card-border-hover",
+        "rounded-xl bg-card ring-1 ring-inset ring-card-border transition-[box-shadow] duration-150 ease-out",
+        interactive && "hover:ring-card-border-hover",
         className,
       )}
       {...rest}

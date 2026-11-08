@@ -70,9 +70,9 @@ npm run dev
 ```
 
 Open http://localhost:3000.
-- **Run Live** (`L`) runs 3 generations on React's suite (≈6 Meta calls, ≈$0.05 SubQ).
-- **Replay last live run** streams the recorded real run with no API keys.
-- **Replay (45s scripted)** is the original choreographed walkthrough.
+- **Run live** (`L`) runs 3 generations on React's suite (≈6 Meta calls, ≈$0.05 SubQ).
+- **Replay run** streams the recorded real run with no API keys.
+- **Scripted walkthrough** (bottom toolbar, `G`) is the original 45s choreographed checkout demo.
 
 API: `GET /api/run?suite=react|checkout&generations=3&fresh=1` · `GET /api/run?replay=1`.
 

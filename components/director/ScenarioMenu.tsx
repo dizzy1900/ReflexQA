@@ -93,7 +93,7 @@ export function ScenarioMenu() {
 
   return (
     <div ref={rootRef} className="relative">
-      <motion.button
+      <button
         ref={triggerRef}
         type="button"
         aria-haspopup="listbox"
@@ -102,44 +102,28 @@ export function ScenarioMenu() {
         aria-label={`Scenario: ${current.label}`}
         onClick={() => (open ? closeMenu(false) : openMenu())}
         onKeyDown={onTriggerKeyDown}
-        whileHover={{ y: -1 }}
-        whileTap={{ scale: 0.97 }}
-        transition={spring}
         className={cn(
-          "flex h-9 items-center gap-2.5 rounded-lg bg-white/[0.04] pl-3 pr-2.5 text-left outline-none ring-1 ring-inset",
-          "transition-[background-color,box-shadow] duration-200 ease-out hover:bg-white/[0.07] hover:shadow-glow-info",
-          "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent/70",
-          open ? "ring-card-border-hover shadow-glow-info" : "ring-card-border",
+          "flex h-7 items-center gap-1.5 rounded-md px-2 text-left text-sm text-fg outline-none",
+          "transition-colors duration-150 ease-out hover:bg-white/[0.06]",
+          "focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-white/40",
+          open && "bg-white/[0.06]",
         )}
       >
-        <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-fg-subtle">Scenario</span>
-        <span className={cn("flex items-center gap-1.5 text-sm font-medium", SCENARIO_TONE_STYLES[current.tone].text)}>
-          <current.icon className="h-3.5 w-3.5" aria-hidden />
-          {current.label}
-        </span>
-        <span
-          aria-hidden
-          className={cn(
-            "h-1.5 w-1.5 rounded-full transition-[background-color,box-shadow] duration-200",
-            isPlaying ? "bg-success shadow-glow-success" : "bg-fg-subtle",
-          )}
-        />
-        <motion.span animate={{ rotate: open ? 180 : 0 }} transition={spring} className="flex text-fg-muted">
-          <ChevronDown className="h-4 w-4" aria-hidden />
-        </motion.span>
-      </motion.button>
+        <span aria-hidden className={cn("h-1.5 w-1.5 rounded-full", isPlaying ? "bg-success" : "bg-fg-subtle")} />
+        {current.label}
+        <ChevronDown className={cn("h-3.5 w-3.5 text-fg-subtle transition-transform duration-150", open && "rotate-180")} aria-hidden />
+      </button>
 
       <AnimatePresence>
         {open ? (
           <motion.section
             key="menu"
             aria-label="Scenario options"
-            initial={{ opacity: 0, y: -6, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -4, scale: 0.98, transition: { duration: 0.12, ease: "easeOut" } }}
-            transition={springPop}
-            style={{ transformOrigin: "top left" }}
-            className="absolute left-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-xl bg-elevated p-1.5 ring-1 ring-inset ring-card-border-hover shadow-frame"
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, transition: { duration: 0.1 } }}
+            transition={{ duration: 0.12, ease: "easeOut" }}
+            className="absolute left-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-lg bg-card p-1 ring-1 ring-inset ring-card-border-hover"
           >
             <ul
               ref={listRef}
@@ -164,15 +148,12 @@ export function ScenarioMenu() {
                     onPointerEnter={() => setHighlight(index)}
                     onClick={() => choose(scenario.id)}
                     className={cn(
-                      "flex cursor-pointer items-start gap-3 rounded-lg px-2.5 py-2 ring-1 ring-inset",
-                      "transition-[background-color,box-shadow] duration-150 ease-out",
-                      highlighted ? "bg-white/[0.07] ring-card-border-hover" : "ring-transparent",
-                      highlighted && styles.glow,
+                      "flex cursor-pointer items-start gap-3 rounded-md px-2.5 py-2",
+                      "transition-colors duration-150 ease-out",
+                      highlighted && "bg-white/[0.06]",
                     )}
                   >
-                    <span className={cn("mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white/[0.04] ring-1 ring-inset ring-card-border", styles.text)}>
-                      <scenario.icon className="h-3.5 w-3.5" aria-hidden />
-                    </span>
+                    <span aria-hidden className={cn("mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full", styles.dot)} />
                     <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                       <span className="text-sm font-medium text-fg">{scenario.label}</span>
                       <span className="text-xs leading-snug text-fg-muted">{scenario.hint}</span>
@@ -184,8 +165,8 @@ export function ScenarioMenu() {
                           initial={{ scale: 0, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
                           exit={{ scale: 0, opacity: 0 }}
-                          transition={springPop}
-                          className="mt-1 flex text-success"
+                          transition={{ duration: 0.12 }}
+                          className="mt-1 flex text-fg"
                         >
                           <Check className="h-4 w-4" aria-hidden />
                         </motion.span>

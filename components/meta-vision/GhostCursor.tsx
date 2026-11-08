@@ -52,7 +52,7 @@ export function GhostCursor({ x, y, tone }: GhostCursorProps) {
             <motion.span
               animate={{ scale: isClicking ? 1.7 : 1, opacity: isClicking ? 1 : 0.7 }}
               transition={spring}
-              className={cn("absolute -left-6 -top-6 h-12 w-12 rounded-full blur-xl transition-colors duration-300", styles.halo)}
+              className="hidden"
               aria-hidden
             />
 
@@ -67,13 +67,13 @@ export function GhostCursor({ x, y, tone }: GhostCursorProps) {
               animate={{ scale: isClicking ? 0.86 : 1 }}
               transition={spring}
               style={{ originX: "3px", originY: "2px" }}
-              className="relative -left-[3px] -top-[2px] overflow-visible drop-shadow-[0_0_6px_currentColor]"
+              className="relative -left-[3px] -top-[2px] overflow-visible"
               aria-hidden
             >
               <path
                 d="M3 2 L3 20 L7.6 15.8 L10.8 23 L14 21.6 L10.9 14.5 L17.4 14.2 Z"
-                fill="currentColor"
-                stroke="rgba(7,7,9,0.85)"
+                fill="#ffffff"
+                stroke="#000000"
                 strokeWidth="1.2"
                 strokeLinejoin="round"
               />

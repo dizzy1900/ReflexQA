@@ -75,7 +75,7 @@ export function IngestionTreeNode({
           <motion.span
             key={passId}
             aria-hidden
-            className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-vision-healed/35 to-transparent"
+            className="hidden"
             initial={{ opacity: 0, x: "-60%" }}
             animate={{ opacity: [0, 1, 0], x: ["-60%", "0%", "60%"] }}
             transition={{ duration: 0.6, delay: delaySec, times: [0, 0.4, 1], ease: "easeOut" }}
@@ -95,7 +95,7 @@ export function IngestionTreeNode({
 
         <span className="relative min-w-0 flex-1 break-words font-mono text-xs leading-snug">{children}</span>
 
-        <span className="relative flex h-5 min-w-[4.75rem] shrink-0 items-center justify-end font-mono text-[10px] uppercase tracking-wide">
+        <span className="relative flex h-5 min-w-[4.75rem] shrink-0 items-center justify-end font-mono text-[11px]">
           <span
             style={style}
             className={cn(

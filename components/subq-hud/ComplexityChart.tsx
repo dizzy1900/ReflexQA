@@ -106,11 +106,11 @@ export function ComplexityChart({ tokens, onTokensChange, onReset }: ComplexityC
       aside={
         <ul className="flex items-center gap-3 font-mono text-[10px] text-fg-muted">
           <li className="flex items-center gap-1.5">
-            <span aria-hidden className="h-0.5 w-3.5 rounded-full bg-vision-fail shadow-glow-danger" />
+            <span aria-hidden className="h-0.5 w-3.5 rounded-full bg-fg-subtle shadow-glow-danger" />
             O(N²) Traditional attention
           </li>
           <li className="flex items-center gap-1.5">
-            <span aria-hidden className="h-0.5 w-3.5 rounded-full bg-vision-nominal shadow-glow-vision-nominal" />
+            <span aria-hidden className="h-0.5 w-3.5 rounded-full bg-fg shadow-glow-vision-nominal" />
             O(N) Subquadratic Snap
           </li>
         </ul>
@@ -122,15 +122,6 @@ export function ComplexityChart({ tokens, onTokensChange, onReset }: ComplexityC
         aria-label={`Latency versus context length from 0 to ${formatInt(TRACE_MAX_TOKENS)} tokens on a logarithmic axis. Traditional attention grows quadratically to ${formatLatency(quadraticLatencyMs(TRACE_MAX_TOKENS))}. Subquadratic Snap stays linear, under ${SNAP_CEILING_MS} milliseconds.`}
         className="h-auto w-full overflow-visible"
       >
-        <defs>
-          <linearGradient id={areaId} x1="0" y1="0" x2="0" y2="1" className="text-vision-fail">
-            <stop offset="0" stopColor="currentColor" stopOpacity="0.28" />
-            <stop offset="1" stopColor="currentColor" stopOpacity="0" />
-          </linearGradient>
-          <filter id={blurId} x="-10%" y="-60%" width="120%" height="220%">
-            <feGaussianBlur stdDeviation="3.5" />
-          </filter>
-        </defs>
 
         {Y_TICKS.map((tick) => (
           <g key={tick.label}>
@@ -159,50 +150,22 @@ export function ComplexityChart({ tokens, onTokensChange, onReset }: ComplexityC
           y1={yOf(SNAP_CEILING_MS)}
           y2={yOf(SNAP_CEILING_MS)}
           strokeDasharray="3 4"
-          className="stroke-vision-nominal/40"
+          className="stroke-white/15"
         />
-        <text x={W - RIGHT - 4} y={yOf(SNAP_CEILING_MS) - 6} textAnchor="end" className="fill-vision-nominal/80 font-mono text-[9px] tabular-nums">
+        <text x={W - RIGHT - 4} y={yOf(SNAP_CEILING_MS) - 6} textAnchor="end" className="fill-fg-subtle font-mono text-[9px] tabular-nums">
           {SNAP_CEILING_MS}ms ceiling
         </text>
 
-        <motion.path
-          d={QUADRATIC_AREA}
-          fill={`url(#${areaId})`}
-          initial={reduceMotion ? false : { opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.9, delay: 0.5 }}
-        />
-        <motion.path
-          d={QUADRATIC_LINE}
-          fill="none"
-          strokeWidth={6}
-          strokeLinecap="round"
-          className="stroke-vision-fail/40"
-          filter={`url(#${blurId})`}
-          {...draw()}
-        />
-        <motion.path d={QUADRATIC_LINE} fill="none" strokeWidth={2} strokeLinecap="round" className="stroke-vision-fail" {...draw()} />
-
-        <motion.path d={SUBQ_LINE} fill="none" strokeWidth={7} strokeLinecap="round" className="stroke-vision-nominal/60" filter={`url(#${blurId})`} {...draw(0.15)} />
-        <motion.path d={SUBQ_LINE} fill="none" strokeWidth={2} strokeLinecap="round" className="stroke-vision-nominal" {...draw(0.15)} />
+        <motion.path d={QUADRATIC_LINE} fill="none" strokeWidth={1.5} strokeDasharray="4 4" className="stroke-fg-subtle" {...draw()} />
+        <motion.path d={SUBQ_LINE} fill="none" strokeWidth={1.5} strokeLinecap="round" className="stroke-fg" {...draw(0.15)} />
 
         <motion.g style={{ x: markerX }} data-chart-marker>
           <line y1={TOP - 8} y2={ZERO_Y} strokeDasharray="2 4" className="stroke-white/20" />
           <motion.g style={{ y: quadraticY }} data-chart-quadratic-point>
-            <circle r={3.5} className="fill-background stroke-vision-fail" strokeWidth={1.5} />
+            <circle r={3} className="fill-background stroke-fg-subtle" strokeWidth={1.5} />
           </motion.g>
           <motion.g style={{ y: subqY }} data-chart-snap-point>
-            {reduceMotion ? null : (
-              <motion.circle
-                r={7}
-                className="fill-vision-nominal/30"
-                style={{ transformBox: "fill-box", transformOrigin: "center" }}
-                animate={{ scale: [1, 2.4], opacity: [0.7, 0] }}
-                transition={{ duration: 1.6, repeat: Infinity, ease: "easeOut" }}
-              />
-            )}
-            <circle r={8} className="fill-vision-nominal/50" filter={`url(#${blurId})`} />
-            <circle r={4} className="fill-white stroke-vision-nominal" strokeWidth={2} />
+            <circle r={3.5} className="fill-fg" />
           </motion.g>
         </motion.g>
       </svg>
@@ -210,18 +173,18 @@ export function ComplexityChart({ tokens, onTokensChange, onReset }: ComplexityC
       <TraceVolumeSlider tokens={tokens} smooth={smooth} onChange={onTokensChange} onReset={onReset} />
 
       <ul className="grid grid-cols-2 gap-2 font-mono text-[11px] tabular-nums">
-        <li className="flex flex-col gap-0.5 rounded-lg bg-vision-fail/[0.06] px-2.5 py-2 ring-1 ring-inset ring-vision-fail/20">
+        <li className="flex flex-col gap-0.5 rounded-lg bg-transparent px-2.5 py-2 ring-1 ring-inset ring-card-border">
           <p className="text-[10px] text-fg-muted">Frontier LLM · O(N²)</p>
-          <p className="text-sm font-semibold text-vision-fail" data-readout="quadratic">
+          <p className="text-sm font-semibold text-fg-muted" data-readout="quadratic">
             <motion.span>{quadraticText}</motion.span>
           </p>
           <p className="text-[10px] text-fg-subtle" data-readout="frontier-cost">
             <motion.span className="text-fg-muted">{quadraticCost}</motion.span> at ${FRONTIER_USD_PER_MILLION_TOKENS.toFixed(2)} / 1M tokens
           </p>
         </li>
-        <li className="flex flex-col gap-0.5 rounded-lg bg-vision-nominal/[0.06] px-2.5 py-2 ring-1 ring-inset ring-vision-nominal/20">
+        <li className="flex flex-col gap-0.5 rounded-lg bg-transparent px-2.5 py-2 ring-1 ring-inset ring-card-border">
           <p className="text-[10px] text-fg-muted">Subquadratic Snap · O(N)</p>
-          <p className="text-sm font-semibold text-vision-nominal" data-readout="subq">
+          <p className="text-sm font-semibold text-fg" data-readout="subq">
             <motion.span>{subqText}</motion.span>
           </p>
           <p className="text-[10px] text-fg-subtle" data-readout="subq-cost">

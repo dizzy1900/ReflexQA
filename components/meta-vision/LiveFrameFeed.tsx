@@ -24,7 +24,7 @@ export function LiveFrameFeed({ frame }: { frame: string }) {
     <figure
       ref={ref}
       aria-label="Live screenshot seen by Meta Muse Spark"
-      className="relative w-full shrink-0 overflow-hidden rounded-2xl bg-background ring-1 ring-inset ring-card-border shadow-frame"
+      className="relative w-full shrink-0 overflow-hidden rounded-lg bg-background ring-1 ring-inset ring-card-border"
       style={{ aspectRatio: `${TARGET_VIEWPORT.w} / ${TARGET_VIEWPORT.h}` }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}

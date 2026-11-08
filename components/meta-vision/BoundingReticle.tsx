@@ -70,10 +70,10 @@ export function BoundingReticle({ box, scale, isTarget }: BoundingReticleProps) 
 
       {evaluating ? (
         <motion.span
-          className="absolute inset-x-0 h-px bg-current shadow-[0_0_8px_currentColor]"
+          className="absolute inset-x-0 h-px bg-current opacity-50"
           initial={{ top: "0%" }}
           animate={{ top: "100%" }}
-          transition={{ duration: 1.1, ease: "linear", repeat: Infinity }}
+          transition={{ duration: 1.1, ease: "linear" }}
           aria-hidden
         />
       ) : null}
@@ -90,7 +90,7 @@ export function BoundingReticle({ box, scale, isTarget }: BoundingReticleProps) 
 
       <p
         className={cn(
-          "absolute flex items-center gap-1.5 whitespace-nowrap rounded bg-background/85 px-1.5 py-1 font-mono text-[10px] uppercase leading-none tracking-wider ring-1 ring-inset",
+          "absolute flex items-center gap-1.5 whitespace-nowrap rounded bg-background/85 px-1.5 py-1 font-mono text-[11px] leading-none ring-1 ring-inset",
           "transition-[box-shadow,color] duration-300 ease-out",
           styles.ring,
           labelInside ? "bottom-1.5 left-2" : "left-0 top-full mt-1.5",

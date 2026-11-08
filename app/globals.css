@@ -4,9 +4,9 @@
 
 /* Mirrors the tokens in tailwind.config.ts for any CSS that cannot use a utility class. */
 :root {
-  --background: #070709;
-  --card: #0f0f13;
-  --card-border: rgba(255, 255, 255, 0.07);
+  --background: #000000;
+  --card: #0a0a0a;
+  --card-border: rgba(255, 255, 255, 0.09);
   --card-border-hover: rgba(255, 255, 255, 0.14);
   color-scheme: dark;
 }
@@ -17,7 +17,7 @@ body {
 }
 
 ::selection {
-  background: rgba(99, 102, 241, 0.4);
+  background: rgba(255, 255, 255, 0.18);
   color: #fff;
 }
 
@@ -47,4 +47,9 @@ body {
 *::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.24);
   background-clip: content-box;
+}
+
+body {
+  font-feature-settings: "ss01", "cv11";
+  letter-spacing: -0.006em;
 }
