@@ -10,6 +10,9 @@ import { ComplexityChart } from "./ComplexityChart";
 import { ContextBufferCard } from "./ContextBufferCard";
 import { CostDeltaCard } from "./CostDeltaCard";
 import { IngestionTree } from "./IngestionTree";
+import { LessonsList } from "./LessonsList";
+import { LiveJudgeCard } from "./LiveJudgeCard";
+import { RsiChart } from "./RsiChart";
 import { TRACE_DEFAULT_TOKENS } from "./subqModel";
 import { TraceResolutionCard } from "./TraceResolutionCard";
 
@@ -22,6 +25,7 @@ export function SubquadraticHud({ className, showHeader = true }: { className?: 
   const status = useAgentStore((s) => s.agentStatus);
   const liveTokens = useAgentStore((s) => s.metrics.tokensIngested);
   const reduceMotion = useReducedMotion();
+  const live = useAgentStore((s) => s.mode === "live");
 
   /** Context depth picked on the slider; null means the HUD follows the demo (or the default trace at rest). */
   const [picked, setPicked] = useState<number | null>(null);
@@ -46,6 +50,14 @@ export function SubquadraticHud({ className, showHeader = true }: { className?: 
           Subquadratic Snap
         </h2>
       )}
+
+      {live ? (
+        <>
+          <LiveJudgeCard />
+          <RsiChart />
+          <LessonsList />
+        </>
+      ) : null}
 
       {/* auto-fit keeps three-up whenever the column is wide enough and wraps cleanly when it is not. */}
       <div className="grid grid-cols-[repeat(auto-fit,minmax(10.5rem,1fr))] gap-3">

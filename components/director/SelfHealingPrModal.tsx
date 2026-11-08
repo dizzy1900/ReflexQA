@@ -19,7 +19,25 @@ type MergeState = "open" | "merging" | "merged";
 const MERGE_MS = 1100;
 const TITLE_ID = "self-heal-pr-title";
 
+function LivePatch({ patch }: { patch: string }) {
+  return (
+    <section aria-label="Patch written by Meta Muse Spark" className="overflow-hidden rounded-lg bg-background ring-1 ring-inset ring-card-border">
+      <header className="flex items-center justify-between border-b border-white/[0.06] px-3 py-2 font-mono text-[11px] text-fg-subtle">
+        <span>test/e2e/checkout.spec.ts</span>
+        <span className="text-ansi-green">live patch · Meta Muse Spark</span>
+      </header>
+      <pre className="max-h-72 overflow-auto p-3 font-mono text-xs leading-relaxed text-ansi-green">
+        {patch
+          .split("\n")
+          .map((line) => (line.startsWith("+") || line.startsWith("-") ? line : `+ ${line}`))
+          .join("\n")}
+      </pre>
+    </section>
+  );
+}
+
 function PrDialog({ onClose }: { onClose: () => void }) {
+  const livePatch = useAgentStore((s) => (s.mode === "live" ? s.liveTestPatch : null));
   const reduceMotion = useReducedMotion();
   const dialogRef = useRef<HTMLElement>(null);
   const astId = useId();
@@ -161,7 +179,7 @@ function PrDialog({ onClose }: { onClose: () => void }) {
         </header>
 
         <section aria-label="Changes" className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-5">
-          <PrDiffViewer />
+          {livePatch ? <LivePatch patch={livePatch} /> : <PrDiffViewer />}
           <AnimatePresence initial={false}>{astOpen ? <AstTracePanel key="ast" id={astId} /> : null}</AnimatePresence>
         </section>
 

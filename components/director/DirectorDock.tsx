@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { Clapperboard, GitPullRequest, Pause, Play, RotateCcw } from "lucide-react";
+import { Clapperboard, GitPullRequest, History, Pause, Play, Radio, RotateCcw, Square } from "lucide-react";
 import { cn } from "../../lib/cn";
 import { spring, springPop } from "../../lib/motion";
 import { GOLDEN_DURATION_MS, useAgentStore } from "../../store/useAgentStore";
@@ -72,9 +72,16 @@ export function DirectorDock() {
   const paused = useAgentStore((s) => !s.isPlaying && s.elapsedMs > 0 && s.elapsedMs < s.durationMs);
   const faults = useLiveFaults();
   const reduceMotion = useReducedMotion();
+  const runLive = useAgentStore((s) => s.runLive);
+  const stopLive = useAgentStore((s) => s.stopLive);
+  const replayLastLive = useAgentStore((s) => s.replayLastLive);
+  const liveRunning = useAgentStore((s) => s.liveRunning);
+  const liveReplay = useAgentStore((s) => s.liveReplay);
+  const toggleLive = () => (liveRunning ? stopLive() : runLive());
 
   const pressed: ShortcutKey | null = useDirectorShortcuts({
     golden: () => void runGoldenDemo(),
+    live: toggleLive,
     playPause: togglePlay,
     reset: resetState,
     pr: openPrModal,
@@ -104,6 +111,56 @@ export function DirectorDock() {
           {reduceMotion ? null : (
             <motion.span
               aria-hidden
+              className="pointer-events-none absolute -inset-1 rounded-2xl bg-success/40 blur-lg"
+              animate={{ opacity: liveRunning ? [0.3, 0.8, 0.3] : [0.25, 0.6, 0.25] }}
+              transition={{ duration: liveRunning ? 1.2 : 2.4, repeat: Infinity, ease: "easeInOut" }}
+            />
+          )}
+          <motion.button
+            type="button"
+            aria-keyshortcuts="L"
+            onClick={toggleLive}
+            animate={{ scale: pressed === "live" ? 0.96 : 1 }}
+            whileHover={{ y: -1 }}
+            whileTap={{ scale: 0.97 }}
+            transition={spring}
+            className={cn(
+              "relative flex h-12 items-center gap-3 rounded-xl pl-3 pr-3.5 text-sm font-semibold text-white outline-none",
+              liveRunning ? "bg-gradient-to-r from-danger to-warning/90" : "bg-gradient-to-r from-success to-vision-nominal/90",
+              "ring-1 ring-inset ring-white/25 shadow-glow-success transition-[filter,box-shadow] duration-200 ease-out",
+              "hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70",
+            )}
+          >
+            {liveRunning ? <Square className="h-4 w-4" aria-hidden /> : <Radio className="h-4 w-4" aria-hidden />}
+            <span className="flex flex-col items-start leading-tight">
+              <span>{liveRunning ? (liveReplay ? "Stop Replay" : "Stop Live Run") : "Run Live"}</span>
+              <span className="text-[11px] font-medium text-white/75">Meta drives · SubQ judges</span>
+            </span>
+            <Kbd tone="onAccent" pressed={pressed === "live"}>L</Kbd>
+          </motion.button>
+        </span>
+
+        <motion.button
+          type="button"
+          title="Stream the last recorded real run from disk. No API credits used."
+          disabled={liveRunning}
+          onClick={replayLastLive}
+          whileHover={{ y: -1 }}
+          whileTap={{ scale: 0.95 }}
+          transition={spring}
+          className={cn(
+            dockButton,
+            "bg-white/[0.04] text-fg-muted ring-card-border hover:text-success hover:ring-success/30 hover:shadow-glow-success focus-visible:shadow-glow-success",
+          )}
+        >
+          <History className="h-3.5 w-3.5" aria-hidden />
+          Replay last live run
+        </motion.button>
+
+        <span className="relative flex">
+          {reduceMotion ? null : (
+            <motion.span
+              aria-hidden
               className="pointer-events-none absolute -inset-1 rounded-2xl bg-accent/40 blur-lg"
               animate={{ opacity: isPlaying ? 0.35 : [0.25, 0.7, 0.25] }}
               transition={isPlaying ? { duration: 0.3 } : { duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
@@ -125,8 +182,8 @@ export function DirectorDock() {
           >
             <TimerRing />
             <span className="flex flex-col items-start leading-tight">
-              <span>Run Golden Demo</span>
-              <span className="text-[11px] font-medium text-white/70">({GOLDEN_SECONDS}s Showcase)</span>
+              <span>Replay</span>
+              <span className="text-[11px] font-medium text-white/70">({GOLDEN_SECONDS}s scripted)</span>
             </span>
             <Kbd tone="onAccent" pressed={pressed === "golden"}>G</Kbd>
           </motion.button>

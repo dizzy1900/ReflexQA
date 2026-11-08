@@ -2,16 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 
-export type ShortcutKey = "golden" | "playPause" | "reset" | "pr";
+export type ShortcutKey = "golden" | "live" | "playPause" | "reset" | "pr";
 
 export interface DirectorShortcutHandlers {
   golden: () => void;
+  live: () => void;
   playPause: () => void;
   reset: () => void;
   pr: () => void;
 }
 
-const KEY_MAP: Record<string, ShortcutKey> = { g: "golden", r: "reset", p: "pr", " ": "playPause" };
+const KEY_MAP: Record<string, ShortcutKey> = { g: "golden", l: "live", r: "reset", p: "pr", " ": "playPause" };
 const FLASH_MS = 260;
 
 /**

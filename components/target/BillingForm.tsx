@@ -2,6 +2,7 @@
 
 import type { FormEvent } from "react";
 import { CreditCard, LockKeyhole } from "lucide-react";
+import { useAgentStore } from "../../store/useAgentStore";
 import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
 import { Field } from "../ui/Field";
@@ -13,7 +14,11 @@ function SectionLabel({ children }: { children: string }) {
 }
 
 export function BillingForm() {
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => event.preventDefault();
+  const submitOrder = useAgentStore((s) => s.submitOrder);
+  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    submitOrder();
+  };
 
   return (
     <Card

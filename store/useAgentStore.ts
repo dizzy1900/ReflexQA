@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { Timeline } from "./timeline";
+import type { EngineEvent, EpisodeSummary, Fault, MetaAction, SubqVerdict } from "../lib/engine/events";
 
 /* -------------------------------------------------------------------------- */
 /*  Types                                                                     */
@@ -109,6 +110,25 @@ export interface AgentState {
   /** Virtual timeline position, scaled by playback speed. */
   elapsedMs: number;
   durationMs: number;
+
+  /* Live engine (real Meta + SubQ calls streamed from /api/run). */
+  mode: "replay" | "live";
+  liveRunning: boolean;
+  /** True when the live stream is a replay of a recorded real run (no API calls). */
+  liveReplay: boolean;
+  liveFrame: string | null;
+  liveAction: MetaAction | null;
+  liveVerdict: (SubqVerdict & { latencyMs: number; inputTokens: number; costUsd: number }) | null;
+  episodes: EpisodeSummary[];
+  lessons: string[];
+  liveGeneration: number;
+  liveStep: number;
+  liveFaults: Fault[];
+  liveCostUsd: number;
+  liveTestPatch: string | null;
+  liveError: string | null;
+  liveModels: { meta: string; subq: string } | null;
+  codebaseTokens: number;
 }
 
 export interface AgentActions {
@@ -128,6 +148,15 @@ export interface AgentActions {
   dismissObstruction: () => void;
   openPrModal: () => void;
   closePrModal: () => void;
+  /** Renders the given chaos faults statically, with no scripted run. Used by the real /target page the live agent drives. */
+  applyFaults: (faults: ReadonlyArray<ActiveScenario>) => void;
+  /** The checkout form was submitted for real (a human or the live agent clicked the CTA). */
+  submitOrder: () => void;
+  /** Streams a real campaign from /api/run: Meta drives, SubQ judges, lessons carry over between generations. */
+  runLive: () => void;
+  /** Streams the last recorded real run from disk (same events, paced). Costs no API credits. */
+  replayLastLive: () => void;
+  stopLive: () => void;
 }
 
 export type AgentStore = AgentState & AgentActions;
@@ -305,6 +334,22 @@ function createInitialState(playbackSpeed: PlaybackSpeed = 1): AgentState {
     prModalOpen: false,
     elapsedMs: 0,
     durationMs: 0,
+    mode: "replay",
+    liveRunning: false,
+    liveReplay: false,
+    liveFrame: null,
+    liveAction: null,
+    liveVerdict: null,
+    episodes: [],
+    lessons: [],
+    liveGeneration: 0,
+    liveStep: 0,
+    liveFaults: [],
+    liveCostUsd: 0,
+    liveTestPatch: null,
+    liveError: null,
+    liveModels: null,
+    codebaseTokens: 0,
   };
 }
 
@@ -322,7 +367,7 @@ let logSeq = 0;
 function log(origin: LogOrigin, severity: LogSeverity, message: string) {
   const entry: LogEntry = {
     id: `log-${++logSeq}`,
-    time: formatClock(runtime?.timeline.time ?? 0),
+    time: formatClock(runtime ? runtime.timeline.time : liveStartedAt ? Date.now() - liveStartedAt : 0),
     origin,
     severity,
     message,
@@ -362,6 +407,132 @@ interface Runtime {
 }
 
 let runtime: Runtime | null = null;
+
+/* -------------------------------------------------------------------------- */
+/*  Live engine stream                                                        */
+/* -------------------------------------------------------------------------- */
+
+let liveSource: EventSource | null = null;
+let liveStartedAt = 0;
+let liveClockTimer: ReturnType<typeof setInterval> | null = null;
+let prTimer: ReturnType<typeof setTimeout> | null = null;
+
+function closeLive() {
+  liveSource?.close();
+  liveSource = null;
+  if (liveClockTimer !== null) clearInterval(liveClockTimer);
+  liveClockTimer = null;
+  setState({ liveRunning: false, isPlaying: false });
+}
+
+function handleEngineEvent(ev: EngineEvent) {
+  switch (ev.type) {
+    case "campaign_start":
+      setState({
+        liveModels: { meta: ev.metaModel, subq: ev.subqModel },
+        codebaseTokens: ev.codebaseTokens,
+        traceTree: ev.codebaseFiles.map((f) => ({ ...f, status: "parsed" as const })),
+        agentStatus: "observing",
+      });
+      patchMetrics({ tokensIngested: ev.codebaseTokens });
+      log("SUBQ_SNAP", "info", `Codebase ingested · ${ev.codebaseFiles.length} files · ${formatInt(ev.codebaseTokens)} tokens`);
+      break;
+    case "episode_start":
+      // Mirror the generation's faults on the Target App pane so it matches what Chromium is driving.
+      getState().applyFaults(ev.faults);
+      setState({
+        liveGeneration: ev.generation,
+        liveFaults: ev.faults,
+        liveStep: 0,
+        lessons: ev.lessons,
+        agentStatus: "observing",
+        liveAction: null,
+        orderConfirmed: false,
+      });
+      log("DOM_RUNTIME", "warn", `Generation ${ev.generation} · faults: ${ev.faults.join(", ") || "none"} · ${ev.lessons.length} lessons loaded`);
+      break;
+    case "frame":
+      setState({ liveFrame: ev.image, liveStep: ev.step });
+      break;
+    case "meta_action": {
+      const a = ev.action;
+      setState((s) => ({
+        liveAction: a,
+        agentStatus: "action_attempted",
+        cursor: { ...s.cursor, x: a.x, y: a.y, targetLabel: a.target, isClicking: a.kind === "click" },
+      }));
+      if (a.kind === "click") setTimeout(() => setCursor({ isClicking: false }), CLICK_HOLD_MS);
+      log("META_VISION", "info", `${a.kind === "click" ? `click (${a.x}, ${a.y}) → ${a.target}` : "declares done"} · ${ev.latencyMs}ms`);
+      break;
+    }
+    case "subq_verdict": {
+      const v = ev.verdict;
+      const agentStatus: AgentStatus = v.goalReached >= 0.5 ? "success" : v.progressed < 0.5 ? "regression_tripped" : "healed_execution";
+      setState((s) => ({
+        liveVerdict: { ...v, latencyMs: ev.latencyMs, inputTokens: ev.inputTokens, costUsd: ev.costUsd },
+        liveCostUsd: round(s.liveCostUsd + ev.costUsd, 6),
+        agentStatus,
+        hudFlashId: s.hudFlashId + 1,
+        metrics: {
+          ...s.metrics,
+          latencyMs: ev.latencyMs,
+          tokensIngested: ev.inputTokens,
+          confidenceScore: v.route.confidence,
+          costSaved: round(s.metrics.costSaved + ev.costUsd, 6),
+        },
+      }));
+      log(
+        "SUBQ_SNAP",
+        v.goalReached >= 0.5 ? "success" : v.progressed < 0.5 ? "alert" : "info",
+        `verdict · progressed ${(v.progressed * 100).toFixed(0)}% · goal ${(v.goalReached * 100).toFixed(0)}% · route ${v.route.choice} · ${ev.latencyMs}ms · ${formatInt(ev.inputTokens)} tok`,
+      );
+      break;
+    }
+    case "lesson":
+      setState((s) => ({ lessons: [...s.lessons, ev.lesson], liveTestPatch: ev.testPatch || s.liveTestPatch }));
+      log("META_VISION", "success", `Lesson learned · ${ev.lesson}`);
+      break;
+    case "curriculum":
+      log("SUBQ_SNAP", "info", `Curriculum · next: ${ev.chosen} (${((ev.probabilities[ev.chosen] ?? 0) * 100).toFixed(0)}%)`);
+      break;
+    case "episode_end":
+      setState((s) => ({
+        episodes: [
+          ...s.episodes,
+          {
+            generation: ev.generation,
+            faults: ev.faults,
+            steps: ev.steps,
+            success: ev.success,
+            lessonsUsed: ev.lessonsUsed,
+            metaCalls: ev.metaCalls,
+            replayedSteps: ev.replayedSteps,
+            durationMs: ev.durationMs,
+          },
+        ],
+        agentStatus: ev.success ? "success" : "regression_tripped",
+        orderConfirmed: ev.success,
+        particleBurstId: ev.success ? s.particleBurstId + 1 : s.particleBurstId,
+      }));
+      log("DOM_RUNTIME", ev.success ? "success" : "alert", `Generation ${ev.generation} ${ev.success ? "passed" : "failed"} in ${ev.steps} steps`);
+      break;
+    case "log":
+      log(ev.origin, ev.severity, ev.message);
+      break;
+    case "campaign_end":
+      log("SUBQ_SNAP", "success", `Campaign complete · ${ev.episodes.length} generations · SubQ spend ${formatUsd(ev.totalCostUsd)}`);
+      closeLive();
+      if (getState().liveTestPatch) {
+        prTimer = setTimeout(() => setState({ prModalOpen: true }), 1500);
+      }
+      break;
+    case "error":
+      setState({ liveError: ev.message });
+      log("DOM_RUNTIME", "alert", `Engine error · ${ev.message}`);
+      closeLive();
+      break;
+  }
+}
 
 function setRuntimeFlags(patch: Partial<Pick<Runtime, "tokenMode" | "pinLatency">>) {
   if (runtime) Object.assign(runtime, patch);
@@ -744,6 +915,32 @@ function armBoard(scenario: ActiveScenario) {
   log("DOM_RUNTIME", "warn", `Chaos injected · ${scenario}`);
 }
 
+function startLiveStream(url: string, intro: string, replay = false) {
+  abortRuntime();
+  closeLive();
+  if (prTimer !== null) clearTimeout(prTimer);
+  logSeq = 0;
+  setState({ ...createInitialState(getState().playbackSpeed), mode: "live", liveRunning: true, liveReplay: replay, isPlaying: true });
+  liveStartedAt = Date.now();
+  liveClockTimer = setInterval(() => setState({ elapsedMs: Date.now() - liveStartedAt }), 250);
+  log("DOM_RUNTIME", "info", intro);
+  const source = new EventSource(url);
+  liveSource = source;
+  source.onmessage = (msg: MessageEvent<string>) => {
+    if (liveSource !== source) return;
+    try {
+      handleEngineEvent(JSON.parse(msg.data) as EngineEvent);
+    } catch {
+      log("DOM_RUNTIME", "warn", "Dropped malformed engine event");
+    }
+  };
+  source.onerror = () => {
+    if (liveSource !== source) return;
+    log("DOM_RUNTIME", "alert", "Engine stream closed");
+    closeLive();
+  };
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Store                                                                     */
 /* -------------------------------------------------------------------------- */
@@ -753,6 +950,7 @@ export const useAgentStore = create<AgentStore>()((set, get) => ({
 
   runGoldenDemo: () => {
     abortRuntime();
+    closeLive();
     logSeq = 0;
     set(createInitialState(get().playbackSpeed));
     return launch(buildGoldenTimeline());
@@ -769,6 +967,7 @@ export const useAgentStore = create<AgentStore>()((set, get) => ({
 
   resetState: () => {
     abortRuntime();
+    closeLive();
     logSeq = 0;
     set(createInitialState(get().playbackSpeed));
   },
@@ -795,4 +994,37 @@ export const useAgentStore = create<AgentStore>()((set, get) => ({
   openPrModal: () => set({ prModalOpen: true }),
 
   closePrModal: () => set({ prModalOpen: false }),
+
+  applyFaults: (faults) => {
+    abortRuntime();
+    const drift = faults.includes("broken_selector");
+    const flip = faults.includes("css_layout_shift");
+    const base = flip ? REVERSED_RECT : drift ? V2_RECT : CHECKOUT_RECT;
+    set({
+      targetElement: {
+        ...base,
+        selector: drift ? MUTATED_SELECTOR : CHECKOUT_SELECTOR,
+        obstruction: faults.includes("modal_obstruction") ? TENANT_MODAL : null,
+        layoutReversed: flip,
+      },
+      orderConfirmed: false,
+    });
+  },
+
+  runLive: () => startLiveStream("/api/run?generations=3&fresh=1", "Live campaign starting · connecting to engine"),
+
+  replayLastLive: () => startLiveStream("/api/run?replay=1", "Replaying last recorded live run · no API calls", true),
+
+  stopLive: () => {
+    if (!liveSource) return;
+    log("DOM_RUNTIME", "warn", "Live campaign stopped by presenter");
+    closeLive();
+  },
+
+  submitOrder: () =>
+    set((s) => {
+      // A click that lands while the modal is up never reaches the form; the backdrop swallows it.
+      if (s.targetElement.obstruction || s.orderConfirmed) return {};
+      return { orderConfirmed: true, particleBurstId: s.particleBurstId + 1 };
+    }),
 }));
