@@ -8,11 +8,20 @@ export type Fault = "broken_selector" | "modal_obstruction" | "css_layout_shift"
 
 export const ALL_FAULTS: readonly Fault[] = ["broken_selector", "modal_obstruction", "css_layout_shift"];
 
+/** Plain-language fault descriptions, used for the curriculum and the UI. */
+export const FAULT_DESCRIPTIONS: Record<Fault, string> = {
+  broken_selector: "the checkout button's id changes (#checkout-btn → #pay-v2-carrier) and it shifts position",
+  modal_obstruction: "a security notice modal covers the page and swallows clicks",
+  css_layout_shift: "the action bar flips, so the checkout button moves to the opposite edge",
+};
+
 /** SubQ's routing choices after each step. */
 export type RouteChoice = "proceed" | "retry_vision" | "dismiss_obstruction" | "goal_complete" | "escalate_heal";
 
 export interface MetaAction {
-  kind: "click" | "done";
+  /** click: mouse click · type: click then type `text` · select: choose option `text` in the <select> at x,y · key: press `text` (e.g. Backspace) · done */
+  kind: "click" | "type" | "select" | "key" | "done";
+  text?: string;
   /** Coordinates in the 1280×800 target viewport (same space as TARGET_VIEWPORT in the store). */
   x: number;
   y: number;
@@ -39,6 +48,25 @@ export interface EpisodeSummary {
   /** Actions replayed from a learned skill, verified step by step by SubQ. */
   replayedSteps?: number;
   durationMs?: number;
+  /** Actions the Judge scored as no progress (misclicks, blocked clicks, stale replayed steps). */
+  mistakes?: number;
+  /** Steps where the Judge's goal verdict matched DOM ground truth, out of judgeChecks. */
+  judgeCorrect?: number;
+  judgeChecks?: number;
+  /** React suite: the test case this episode ran and SubQ's P(behaves as expected). */
+  caseTitle?: string;
+  qaPass?: number;
+}
+
+/** One manual test case from react/react fixtures/dom, read off the rendered page. */
+export interface ReactTestCase {
+  id: string;
+  fixture: string;
+  index: number;
+  title: string;
+  steps: string[];
+  expected: string;
+  sourceUrl: string;
 }
 
 export type EngineEvent =
@@ -62,8 +90,12 @@ export type EngineEvent =
       latencyMs: number;
       inputTokens: number;
       costUsd: number;
+      /** DOM ground truth for "goal reached" at this step. The agent never sees it; it only scores the Judge. */
+      groundTruthGoal?: boolean;
     }
   | { type: "lesson"; generation: number; lesson: string; testPatch: string }
+  | { type: "test_case"; generation: number; testCase: ReactTestCase; catalogSize: number }
+  | { type: "qa_verdict"; generation: number; testCase: ReactTestCase; pass: number; stepsComplete: number; summary: string }
   | {
       type: "curriculum";
       generation: number;

@@ -19,11 +19,11 @@ type MergeState = "open" | "merging" | "merged";
 const MERGE_MS = 1100;
 const TITLE_ID = "self-heal-pr-title";
 
-function LivePatch({ patch }: { patch: string }) {
+function LivePatch({ patch, file }: { patch: string; file: string }) {
   return (
     <section aria-label="Patch written by Meta Muse Spark" className="overflow-hidden rounded-lg bg-background ring-1 ring-inset ring-card-border">
       <header className="flex items-center justify-between border-b border-white/[0.06] px-3 py-2 font-mono text-[11px] text-fg-subtle">
-        <span>test/e2e/checkout.spec.ts</span>
+        <span>{file}</span>
         <span className="text-ansi-green">live patch · Meta Muse Spark</span>
       </header>
       <pre className="max-h-72 overflow-auto p-3 font-mono text-xs leading-relaxed text-ansi-green">
@@ -38,6 +38,10 @@ function LivePatch({ patch }: { patch: string }) {
 
 function PrDialog({ onClose }: { onClose: () => void }) {
   const livePatch = useAgentStore((s) => (s.mode === "live" ? s.liveTestPatch : null));
+  const liveCase = useAgentStore((s) => (s.mode === "live" ? s.liveCase : null));
+  const title = liveCase ? `[ReflexQA] Automate React DOM manual test: ${liveCase.title}` : PR_TITLE;
+  const branch = liveCase ? `reflexqa/automate-${liveCase.fixture}-${liveCase.index}` : PR_BRANCH;
+  const patchFile = liveCase ? `fixtures/dom/e2e/${liveCase.fixture}.spec.ts` : "test/e2e/checkout.spec.ts";
   const reduceMotion = useReducedMotion();
   const dialogRef = useRef<HTMLElement>(null);
   const astId = useId();
@@ -137,7 +141,7 @@ function PrDialog({ onClose }: { onClose: () => void }) {
               <GitPullRequest className="h-4 w-4" aria-hidden />
             </span>
             <h2 id={TITLE_ID} className="min-w-0 flex-1 text-base font-semibold leading-snug text-fg">
-              <span className="text-fg-muted">PR #{PR_NUMBER}:</span> {PR_TITLE}
+              <span className="text-fg-muted">PR #{PR_NUMBER}:</span> {title}
             </h2>
             <Badge tone="purple" className="mt-0.5">
               {merged ? "Merged" : "Open"}
@@ -169,7 +173,7 @@ function PrDialog({ onClose }: { onClose: () => void }) {
             <span>opened this pull request just now</span>
             <span className="flex items-center gap-1.5 rounded-md bg-white/[0.04] px-2 py-0.5 font-mono text-[11px] ring-1 ring-inset ring-card-border">
               <GitBranch className="h-3 w-3 text-fg-subtle" aria-hidden />
-              {PR_BRANCH} <span className="text-fg-subtle">→</span> {PR_BASE}
+              {branch} <span className="text-fg-subtle">→</span> {PR_BASE}
             </span>
             <span className="font-mono text-[11px] tabular-nums">
               1 file · <span className="text-ansi-green">+{DIFF_STATS.additions}</span>{" "}
@@ -179,7 +183,7 @@ function PrDialog({ onClose }: { onClose: () => void }) {
         </header>
 
         <section aria-label="Changes" className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-5">
-          {livePatch ? <LivePatch patch={livePatch} /> : <PrDiffViewer />}
+          {livePatch ? <LivePatch patch={livePatch} file={patchFile} /> : <PrDiffViewer />}
           <AnimatePresence initial={false}>{astOpen ? <AstTracePanel key="ast" id={astId} /> : null}</AnimatePresence>
         </section>
 

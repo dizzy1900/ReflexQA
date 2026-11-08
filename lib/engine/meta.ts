@@ -6,7 +6,7 @@ const BASE_URL = "https://api.meta.ai/v1";
 export const META_MODEL = process.env.META_MODEL || "muse-spark-1.3";
 
 type Part = { type: "text"; text: string } | { type: "image_url"; image_url: { url: string } };
-interface ChatMessage {
+export interface ChatMessage {
   role: "system" | "user";
   content: string | Part[];
 }
@@ -16,7 +16,7 @@ interface ChatResult {
   latencyMs: number;
 }
 
-async function chat(messages: ChatMessage[], maxTokens = 6000): Promise<ChatResult> {
+export async function chat(messages: ChatMessage[], maxTokens = 6000): Promise<ChatResult> {
   const key = process.env.MODEL_API_KEY;
   if (!key) throw new Error("MODEL_API_KEY is not set in .env.local");
   const started = Date.now();
@@ -123,7 +123,7 @@ export async function distillLesson(input: LessonInput): Promise<{ lesson: strin
         content:
           "You are the self-improvement module of a GUI QA agent. Turn a test trajectory into (1) ONE short, general, reusable lesson " +
           "(max 30 words) that would make the next run need fewer steps, not repeating existing lessons, and (2) a hardened Playwright " +
-          'test (TypeScript, max 14 lines) that completes this checkout robustly against the faults seen. Reply ONLY JSON: {"lesson":"...","testPatch":"..."}',
+          'test (TypeScript, max 14 lines) that automates this test case robustly, asserting the expected result. Reply ONLY JSON: {"lesson":"...","testPatch":"..."}',
       },
       {
         role: "user",

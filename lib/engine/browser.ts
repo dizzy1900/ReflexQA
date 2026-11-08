@@ -73,7 +73,7 @@ export interface Mark {
 export async function markedScreenshot(page: Page): Promise<{ image: string; marks: Mark[] }> {
   const marks = await page.evaluate(() => {
     const found: { id: number; x: number; y: number; label: string }[] = [];
-    const nodes = document.querySelectorAll('button, a[href], input, select, textarea, [role="button"]');
+    const nodes = document.querySelectorAll('button, a[href], input, select, textarea, [role="button"], [role="checkbox"]');
     let id = 1;
     nodes.forEach((el) => {
       const r = el.getBoundingClientRect();

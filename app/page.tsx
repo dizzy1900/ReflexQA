@@ -1,11 +1,10 @@
-import { AppWindow, Zap } from "lucide-react";
+import { Zap } from "lucide-react";
 import { DirectorDock } from "../components/director/DirectorDock";
 import { SelfHealingPrModal } from "../components/director/SelfHealingPrModal";
 import { TerminalLog } from "../components/director/TerminalLog";
 import { TopBar } from "../components/director/TopBar";
 import { SubquadraticHud } from "../components/subq-hud/SubquadraticHud";
-import { TargetAppSandbox } from "../components/target/TargetAppSandbox";
-import { TargetInspector } from "../components/target/TargetInspector";
+import { TargetPane } from "../components/target/TargetPane";
 import { Badge } from "../components/ui/Badge";
 import { PaneHeader } from "../components/ui/PaneHeader";
 import { MetaVisionPane } from "./_components/MetaVisionPane";
@@ -23,20 +22,7 @@ export default function Page() {
       <TopBar />
 
       <div className="grid min-h-0 flex-1 gap-3 px-3 pb-2 pt-3 lg:grid-cols-[minmax(0,35fr)_minmax(0,35fr)_minmax(0,30fr)]">
-        <section aria-labelledby="pane-target-title" className={PANE}>
-          <PaneHeader
-            id="pane-target-title"
-            title="Target App"
-            icon={<AppWindow />}
-            aside={
-              <Badge tone="success" pulse>
-                Interactive
-              </Badge>
-            }
-          />
-          <TargetAppSandbox chaosControls={false} className="shrink-0" />
-          <TargetInspector className="shrink-0" />
-        </section>
+        <TargetPane className={PANE} />
 
         <MetaVisionPane />
 
