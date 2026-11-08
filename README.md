@@ -2,6 +2,10 @@
 
 **A recursive self-improving GUI QA agent, pointed at Meta's largest open-source project.**
 
+![ReflexQA running React's own DOM test suite: the test case, Meta's live view, and SubQ's judgement](docs/screenshot.png)
+
+▶ **[Watch the 1-minute demo](demo/reflexqa-demo.mp4)**: a real recorded run, captioned. · **[90-second pitch](PITCH.md)**
+
 React keeps a manual browser QA suite in [`react/react` › `fixtures/dom`](https://github.com/react/react/tree/main/fixtures/dom): dozens of test cases with "Steps to reproduce" and an "Expected Result". Maintainers click through them by hand. ReflexQA runs them autonomously:
 
 - **Meta Muse Spark (Meta Model API) is the Driver.** It reads each test case off the screen, looks at the screenshot, and clicks, types, picks options and presses keys in a real Chromium browser.
@@ -16,6 +20,7 @@ React keeps a manual browser QA suite in [`react/react` › `fixtures/dom`](http
 | 2 | A single select being reset | memory replay | **0** | 2 | **7.4s** | **PASS** (P=0.99) |
 | 3 | A multiple select being reset | SubQ, from 31 untested cases | 2 | 2 | 24.0s | **PASS** (P=0.98) |
 
+- **Meta:** 6 calls for the whole campaign (4 Driver actions + 2 reflections). Gen 2 needed none.
 - **SubQ per judgement:** ~188,600 input tokens, **2.1–2.9s**, **$0.0075**. The whole 3-generation campaign cost **$0.045** in SubQ.
 - **SubQ accuracy:** on the fault-injected checkout suite, the Judge's "goal reached" verdict matched DOM ground truth on **7/7** steps. Scripted probes: a click blocked by a modal scored *progressed* 0.007, and the confirmation scored *goal* 0.999.
 - **Meta Driver:** ~2.2–4.7s per decision with set-of-marks grounding.
